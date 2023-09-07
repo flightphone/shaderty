@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Counter GLSL</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <script src="/js/GlslCanvas.min.js"></script>
+
+</head>
+<style>
+    body {
+        background-color: black;
+    }
+</style>
+
+<body>
+    <div class="container" id="main_block">
+        <div class="row">
+            <div class="col p-3 d-flex justify-content-center align-items-center gap-1">
+
+                <button id="but1" class="btn btn-success btn-lg">Start</button>
+                <button id="but2" class="btn btn-secondary btn-lg">Stop</button>
+                <button id="but3" class="btn btn-primary btn-lg">Reset</button>
+
+                <div class="input-group mb-0">
+                    <span class="input-group-text" id="basic-addon2">Result</span>
+                    <input type="text" class="form-control" id="res" aria-describedby="basic-addon2" value="2023">
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row">
+            <div class="col p-2 d-flex justify-content-center" style="position: relative;">
+                <!----------------main canvas for render shader------------------>
+                <!-- width="1768"
+                
+                    height="1248" -->
+                    
+                <div>
+                    <canvas style="background-image: url(/img/2k_earth.jpg);"
+                id="glslCanvas" data-fragment-url="/frag/counter.frag"
+                    data-textures="/counter/Num_0.png,/counter/Num_1.png,/counter/Num_2.png,/counter/Num_3.png,/counter/Num_4.png,/counter/Num_5.png,/counter/Num_6.png,/counter/Num_7.png,/counter/Num_8.png,/counter/Num_9.png,/counter/counter.png,/counter/Baraban.png,/counter/Lights.png,/counter/init_light.png"></canvas>
+                </div>    
+                <!----------------main canvas for render shader------------------>
+                
+
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- <div style="position: absolute; top:0px; left: 0px; z-index: -1;">
+        <img src="/img/2k_earth.jpg" alt="">
+    </div>     -->
+
+
+</body>
+<script>
+    const canvas = document.getElementById("glslCanvas");
+    const counter = new GlslCounter(canvas, "884px", "624px");
+    //const counter = new GlslCounter(canvas, "1768px", "1248px");
+    //const counter = new GlslCounter(canvas, "100%", "100vh");
+
+    document.getElementById("but1").addEventListener("click", () => {
+        counter.start();
+    });
+
+    document.getElementById("but2").addEventListener("click", () => {
+        const v = document.getElementById("res").value;
+        counter.showResalt(v);
+    });
+
+    document.getElementById("but3").addEventListener("click", () => {
+        const v = document.getElementById("res").value;
+        counter.reset();
+    });
+
+
+
+    //=======================main animation object==========================
+    function GlslCounter(canvas, width, heigth) {
+        this.sandbox = new GlslCanvas(canvas);
+        this.sandbox.setUniform("u_reset", 0.0);
+        this.sandbox.setUniform("u_stop", 1.0);
+        canvas.style.width = width;
+        canvas.style.height = heigth;
+
+        this.start = () => {
+            this.sandbox.timeLoad = performance.now();
+            this.sandbox.setUniform("u_reset", 0.0);
+            this.sandbox.setUniform("u_stop", 0.0);
+        }
+        this.showResalt = (s) => {
+            this.sandbox.setUniform("u_reset", 0.0);
+            this.sandbox.setUniform("u_stop_time", (performance.now() - this.sandbox.timeLoad) / 1000.0);
+            this.sandbox.setUniform("u_stop", 1.0);
+            this.sandbox.setUniform("u_res0", parseFloat(s[0]));
+            this.sandbox.setUniform("u_res1", parseFloat(s[1]));
+            this.sandbox.setUniform("u_res2", parseFloat(s[2]));
+            this.sandbox.setUniform("u_res3", parseFloat(s[3]));
+        }
+
+        this.reset = () => {
+            this.sandbox.setUniform("u_reset", 1.0);
+        }
+    }
+</script>
+
+</html>
