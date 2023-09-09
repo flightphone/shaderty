@@ -1,0 +1,6 @@
+float a0 = 1.*e*e*e-1.*e*t*t-1.*a*a*a + 3.*a*c*c;
+float a1 = 3.*e*e*f-1.*f*t*t-3.*a*a*b + 6.*a*c*d + 3.*b*c*c;
+float a2 = 3.*e*f*f-3.*a*b*b + 3.*a*d*d + 6.*b*c*d;
+float a3 = 1.*f*f*f-1.*b*b*b + 3.*b*d*d;
+
+nor = vec3(0.-3.*pos.x*pos.x+3.*pos.y*pos.y, 0.+6.*pos.x*pos.y, 0.+3.*pos.z*pos.z-1.*t*t);

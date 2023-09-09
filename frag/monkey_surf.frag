@@ -18,7 +18,8 @@ uniform sampler2D u_tex1;
 
 
 /////=====================================================================================
-
+//MÖBIUS SURFACE
+//https://mathcurve.com/surfaces.gb/mobiussurface/mobiussurface.shtml
 #define PI 3.14159265359
 #define TAU 6.283185
 mat3 rotateX(float f)
@@ -83,19 +84,7 @@ vec2 lonlat (vec3 p)
 const float dist_infin = 100000.0;
 const HIT hit_inf = HIT(100000.0, vec3(0.0), vec3(0.0));
 
-/*
-vec3 calcSkyReflect(vec3 rd, vec3 nor, mat3 sky)
-{
-    vec3 n = nor;
-    float d = dot(rd, nor);
-    n = nor*sign(d);
-    vec3 r = reflect(rd, n);
-    vec2 fon = lonlat(sky*r); //get longitude and latitude
-    vec3 col = texture(iChannel0, fon).rgb;
-    return col;
 
-}
-*/
 vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor)
 {
     vec3 col = col_in;
@@ -109,6 +98,18 @@ vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
     float difu = max(difu1, difu2);
         col *= clamp(difu, 0.3, 1.0);
     return col;   
+}
+
+vec3 calcSkyReflect(vec3 rd, vec3 nor, mat3 sky)
+{
+    vec3 n = nor;
+    float d = dot(rd, nor);
+    n = nor*sign(d);
+    vec3 r = reflect(rd, n);
+    vec2 fon = lonlat(sky*r); //get longitude and latitude
+    vec3 col = texture(iChannel0, fon).rgb;
+    return col;
+
 }
 
 /// https://www.shadertoy.com/view/4lsfzj
@@ -173,11 +174,14 @@ HIT giper3D(vec3 ro, vec3 rd, float t, float r)
     float e = ro.z;
     float f = rd.z;
 
-    float k = 2.;
-    float a0 = 1.*a*a*c + 3.*a*c*e + 1.*a*a*e + 1.*a*c*c + 1.*c*c*e + 1.*c*e*e + 1.*a*e*e-1.*a*c*t-1.*c*e*t-1.*a*e*t-1.*a*c*e*k;
-    float a1 = 1.*a*a*d + 2.*a*b*c + 3.*a*c*f + 3.*a*d*e + 2.*a*b*e + 1.*a*a*f + 2.*a*c*d + 1.*b*c*c + 1.*c*c*f + 2.*c*d*e + 3.*b*c*e + 2.*c*e*f + 1.*d*e*e + 1.*b*e*e + 2.*a*e*f-1.*a*d*t-1.*b*c*t-1.*c*f*t-1.*d*e*t-1.*b*e*t-1.*a*f*t-1.*a*c*f*k-1.*a*d*e*k-1.*b*c*e*k;
-    float a2 = 2.*a*b*d + 3.*a*d*f + 2.*a*b*f + 2.*b*c*d + 2.*c*d*f + 3.*b*c*f + 3.*b*d*e + 2.*d*e*f + 2.*b*e*f-1.*b*d*t-1.*d*f*t-1.*b*f*t + 1.*b*b*c + 1.*b*b*e + 1.*a*d*d + 1.*d*d*e + 1.*c*f*f + 1.*a*f*f-1.*a*d*f*k-1.*b*c*f*k-1.*b*d*e*k;
-    float a3 = 1.*b*b*d + 3.*b*d*f + 1.*b*b*f + 1.*b*d*d + 1.*d*d*f + 1.*d*f*f + 1.*b*f*f-1.*b*d*f*k;
+    
+    //https://github.com/flightphone/shaderty/blob/master/staples_polynomial.py
+    //for generate this expression used python script staples_polynomial.py
+    float a0 = 1.*a*a*a-3.*a*c*c-1.*e*t*t;
+    float a1 = 3.*a*a*b-6.*a*c*d-3.*b*c*c-1.*f*t*t;
+    float a2 = 3.*a*b*b-3.*a*d*d-6.*b*c*d;
+    float a3 = 1.*b*b*b-3.*b*d*d;
+    //https://github.com/flightphone/shaderty/blob/master/staples_polynomial.py
 
     vec3 roots = vec3(dist_infin);
     int nroots = cubic(a3, a2, a1, a0, roots);
@@ -204,12 +208,9 @@ HIT giper3D(vec3 ro, vec3 rd, float t, float r)
     }
     if (dist < dist_infin)
     {
-        // -3x^2 + 3y^2, 6yx, 3z^2 - t^2
-        //normal = (xy+yz+zx) + (y+z)(x+y+z-a) - kyz, (xy+yz+zx) + (x+z)(x+y+z-a) - kxz,  (xy+yz+zx) + (y+x)(x+y+z-a) - kxy
-        float s = pos.x*pos.y + pos.y*pos.z + pos.x*pos.z;
-        float s1 = pos.x + pos.y + pos.z - t;
-        nor = vec3(s1*(pos.y + pos.z) - k*pos.y*pos.z, s1*(pos.x + pos.z) - k*pos.x*pos.z, s1*(pos.x + pos.y) - k*pos.x*pos.y);
-        nor += s;
+        //https://github.com/flightphone/shaderty/blob/master/staples_polynomial.py
+        //for generate this expression used python script staples_polynomial.py
+        nor = vec3(0.+3.*pos.x*pos.x-3.*pos.y*pos.y, 0.-6.*pos.x*pos.y, 0.-1.*t*t);
         nor = normalize(nor);
     }
     return HIT(dist, nor, pos);
@@ -228,6 +229,7 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
+    //surface (x+y+z-a)(xy+yz+zx) - kxyz = 0
     vec3 light = normalize(vec3(0.0, 0.0, -1.0)); //light
     vec3 light2 = normalize(vec3(0.0, 0.0, 1.0)); //light
 
@@ -238,20 +240,21 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     vec2 m = vec2(0.0, 0.0);
     //if  (iMouse.z > 0.0)
     {
-        //m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
-        //t = 0.;
+        m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
+        t = 0.;
     }
-    vec3 ro = vec3(0.0, 0.0, 6.); // camera
+    vec3 ro = vec3(0.0, 0.0, 8.); // camera
     ro = rotateY(-m.x*TAU)*rotateX(-m.y*PI)*ro; //camera rotation
     
     
     const float fl = 1.5; // focal length
     float dist = dist_infin;
     float fi = PI/4.5;
-    
-    mat3 rota  = rotateX(fi)*rotateY(-fi)*rotateX(-PI/2.)*rotateY(t);
-    mat3 rota_1  = rotateY(-t)*rotateX(PI/2.)*rotateY(fi)*rotateX(-fi);
-    //mat3 sky = rotateZ(0.0)*rotateY(PI/2.0);
+    mat3 rota  = rotateY(PI/2.0)*rotateZ(PI/2.0)*rotateY(t);
+    mat3 rota_1  = rotateY(-t)*rotateZ(-PI/2.0)*rotateY(-PI/2.0);
+    //mat3 rota  = rotateX(fi)*rotateY(-fi)*rotateX(-PI/2.)*rotateZ(PI/4.0)*rotateX(t)*rotateY(t);
+    //mat3 rota_1  = rotateY(-t)*rotateX(-t)*rotateZ(-PI/4.0)*rotateX(PI/2.)*rotateY(fi)*rotateX(-fi);
+    mat3 sky = rotateZ(0.0)*rotateY(PI);
     
     vec2 torus = vec2(1.0,0.3);
     vec3 tot = vec3(0.0);

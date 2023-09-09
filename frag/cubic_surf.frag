@@ -266,7 +266,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         if (giper.dist < dist)
         {
            col = vec3(0.5, 0.5, 1.0);
-            vec3 backcol = vec3(1.0, 0.4, 0.4);
+            vec3 backcol = vec3(1.0, 0.2, 0.2);
             vec3 nor = rota_1*giper.nor;
             col = culccolor(col, backcol, -rd, light, light2, nor);
             // gamma
