@@ -18,8 +18,8 @@ uniform sampler2D u_tex1;
 
 
 /////=====================================================================================
-//MÖBIUS SURFACE
-//https://mathcurve.com/surfaces.gb/mobiussurface/mobiussurface.shtml
+//MONKEY SADDLE
+//https://mathcurve.com/surfaces.gb/selle/selle.shtml
 #define PI 3.14159265359
 #define TAU 6.283185
 mat3 rotateX(float f)
@@ -243,7 +243,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
         t = 0.;
     }
-    vec3 ro = vec3(0.0, 0.0, 8.); // camera
+    vec3 ro = vec3(0.0, 0.0, 7.); // camera
     ro = rotateY(-m.x*TAU)*rotateX(-m.y*PI)*ro; //camera rotation
     
     

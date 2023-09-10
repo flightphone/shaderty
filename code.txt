@@ -1,6 +1,7 @@
-float a0 = 1.*e*e*e-1.*e*t*t-1.*a*a*a + 3.*a*c*c;
-float a1 = 3.*e*e*f-1.*f*t*t-3.*a*a*b + 6.*a*c*d + 3.*b*c*c;
-float a2 = 3.*e*f*f-3.*a*b*b + 3.*a*d*d + 6.*b*c*d;
-float a3 = 1.*f*f*f-1.*b*b*b + 3.*b*d*d;
+float a0 = 1.*a*a*a*a + 2.*a*a*c*c + 2.*a*a*e*e + 2.*a*a*u*u-2.*a*a*w*w + 1.*c*c*c*c + 2.*c*c*e*e-2.*c*c*u*u-2.*c*c*w*w + 1.*e*e*e*e + 2.*e*e*u*u-2.*e*e*w*w + 1.*u*u*u*u-2.*u*u*w*w + 1.*w*w*w*w-4.*a*a*t*t + 8.*a*t*v*w-4.*v*v*w*w;
+float a1 = 4.*a*a*a*b + 4.*a*a*c*d + 4.*a*a*e*f + 4.*a*b*c*c + 4.*c*c*c*d + 4.*c*c*e*f + 4.*a*b*e*e + 4.*c*d*e*e + 4.*e*e*e*f + 4.*a*b*u*u-4.*c*d*u*u + 4.*e*f*u*u-4.*a*b*w*w-4.*c*d*w*w-4.*e*f*w*w-8.*a*b*t*t + 8.*b*t*v*w;
+float a2 = 6.*a*a*b*b + 2.*a*a*d*d + 2.*a*a*f*f + 2.*b*b*c*c + 6.*c*c*d*d + 2.*c*c*f*f + 2.*b*b*e*e + 2.*d*d*e*e + 6.*e*e*f*f + 2.*b*b*u*u-2.*d*d*u*u + 2.*f*f*u*u-2.*b*b*w*w-2.*d*d*w*w-2.*f*f*w*w + 8.*a*b*c*d + 8.*a*b*e*f + 8.*c*d*e*f-4.*b*b*t*t;
+float a3 = 4.*a*b*b*b + 4.*a*b*d*d + 4.*a*b*f*f + 4.*b*b*c*d + 4.*c*d*d*d + 4.*c*d*f*f + 4.*b*b*e*f + 4.*d*d*e*f + 4.*e*f*f*f;
+float a4 = 1.*b*b*b*b + 2.*b*b*d*d + 2.*b*b*f*f + 1.*d*d*d*d + 2.*d*d*f*f + 1.*f*f*f*f;
 
-nor = vec3(0.-3.*pos.x*pos.x+3.*pos.y*pos.y, 0.+6.*pos.x*pos.y, 0.+3.*pos.z*pos.z-1.*t*t);
+nor = vec3(0.+4.*pos.x*pos.x*pos.x+4.*pos.x*pos.y*pos.y+4.*pos.x*pos.z*pos.z+4.*u*u*pos.x-4.*w*w*pos.x-8.*t*t*pos.x+8.*t*v*w, 0.+4.*pos.x*pos.x*pos.y+4.*pos.y*pos.y*pos.y+4.*pos.y*pos.z*pos.z-4.*u*u*pos.y-4.*w*w*pos.y, 0.+4.*pos.x*pos.x*pos.z+4.*pos.y*pos.y*pos.z+4.*pos.z*pos.z*pos.z+4.*u*u*pos.z-4.*w*w*pos.z);

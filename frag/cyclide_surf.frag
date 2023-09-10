@@ -18,8 +18,7 @@ uniform sampler2D u_tex1;
 
 
 /////=====================================================================================
-//MÖBIUS SURFACE
-//https://mathcurve.com/surfaces.gb/mobiussurface/mobiussurface.shtml
+//roman  surface https://mathcurve.com/surfaces.gb/romaine/romaine.shtml
 #define PI 3.14159265359
 #define TAU 6.283185
 mat3 rotateX(float f)
@@ -84,7 +83,19 @@ vec2 lonlat (vec3 p)
 const float dist_infin = 100000.0;
 const HIT hit_inf = HIT(100000.0, vec3(0.0), vec3(0.0));
 
+/*
+vec3 calcSkyReflect(vec3 rd, vec3 nor, mat3 sky)
+{
+    vec3 n = nor;
+    float d = dot(rd, nor);
+    n = nor*sign(d);
+    vec3 r = reflect(rd, n);
+    vec2 fon = lonlat(sky*r); //get longitude and latitude
+    vec3 col = texture(iChannel0, fon).rgb;
+    return col;
 
+}
+*/
 vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor)
 {
     vec3 col = col_in;
@@ -100,62 +111,7 @@ vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
     return col;   
 }
 
-/// https://www.shadertoy.com/view/4lsfzj
-
-int quadratic(float A, float B, float C, out vec3 x) {
-   float D = B*B - 4.0*A*C;
-   if (D < 0.0) return 0;
-   D = sqrt(D);
-   if (B < 0.0) D = -D;
-   x[0] = (-B-D)/(2.0*A);
-   x[1] = C/(A*x[0]);
-   return 2;
-}
-
-// Numerical Recipes algorithm for solving cubic equation
-int cubic0(float a, float b, float c, float d, out vec3 x) {
-  if (a == 0.0) return quadratic(b,c,d,x);
-  //if (d == 0.0) return quadratic(a,b,c,x); // Need 0 too.
-  float tmp = a; a = b/tmp; b = c/tmp; c = d/tmp;
-  // solve x^3 + ax^2 + bx + c = 0
-  float Q = (a*a-3.0*b)/9.0;
-  float R = (2.0*a*a*a - 9.0*a*b + 27.0*c)/54.0;
-  float R2 = R*R, Q3 = Q*Q*Q;
-  if (R2 < Q3) {
-    float X = clamp(R/sqrt(Q3),-1.0,1.0);
-    float theta = acos(X);
-    float S = sqrt(Q); // Q must be positive since 0 <= R2 < Q3
-    x[0] = -2.0*S*cos(theta/3.0) - a/3.0;
-    x[1] = -2.0*S*cos((theta+2.0*PI)/3.0) - a/3.0;
-    x[2] = -2.0*S*cos((theta+4.0*PI)/3.0) - a/3.0;
-    return 3;
-  } else {
-    float A = -sign(R)*pow(abs(R)+sqrt(R2-Q3),0.3333);
-    float B = A == 0.0 ? 0.0 : Q/A;
-    x[0] = (A+B) - a/3.0;
-    return 1;
-  }
-}
-
-int cubic(float A, float B, float C, float D, out vec3 x) {
-  int nroots;
-  // Some ill-conditioned coeffs can cause problems
-  // The worst is fixed by solving for reciprocal
-  if (abs(A) > abs(D)) {
-    nroots = cubic0(A,B,C,D,x);
-  } else {
-    nroots = cubic0(D,C,B,A,x);
-    for (int i = 0; i < 3; i++) {
-      x[i] = 1.0/x[i];
-    }
-  }
-  return nroots;
-}
-/// https://www.shadertoy.com/view/4lsfzj
-
-
 //===================https://www.shadertoy.com/view/wsXGWS======================
-/*
 float sgn(float x) {
   return x < 0.0? -1.0: 1.0; // Return 1 for x == 0
 }
@@ -272,15 +228,13 @@ int quartic(vec4 coeffs, out vec4 res) {
 
 int quartic(float A, float B, float C, float D, float E, out vec4 roots) {
   int nroots;
-  // There may be a better heuristic for this.
-  // but this avoids the worst glitches.
   vec4 coeffs = vec4(B,C,D,E)/A;
   nroots = quartic(coeffs,roots);
   return nroots;
 }
 
 //https://www.shadertoy.com/view/wsXGWS
-*/
+
 HIT giper3D(vec3 ro, vec3 rd, float t, float r)
 {
     float a = ro.x;
@@ -289,24 +243,28 @@ HIT giper3D(vec3 ro, vec3 rd, float t, float r)
     float d = rd.y;
     float e = ro.z;
     float f = rd.z;
-
     
     //https://github.com/flightphone/shaderty/blob/master/staples_polynomial.py
     //for generate this expression used python script staples_polynomial.py
-    float a0 = 1.*c*c*c-2.*c*c*e + 1.*c*e*e + 1.*a*a*c-1.*c*t*t-2.*a*a*e-2.*a*e*t;
-    float a1 = 3.*c*c*d-2.*c*c*f-4.*c*d*e + 2.*c*e*f + 2.*a*b*c + 1.*d*e*e + 1.*a*a*d-1.*d*t*t-4.*a*b*e-2.*b*e*t-2.*a*a*f-2.*a*f*t;
-    float a2 = 3.*c*d*d-4.*c*d*f + 1.*c*f*f + 1.*b*b*c-2.*d*d*e + 2.*d*e*f + 2.*a*b*d-2.*b*b*e-4.*a*b*f-2.*b*f*t;
-    float a3 = 1.*d*d*d-2.*d*d*f + 1.*d*f*f + 1.*b*b*d-2.*b*b*f;
+    float u = 1.5;
+    float w = 1.5;
+    float v = sqrt(t*t - u*u)*0.9;
+    float a0 = 1.*a*a*a*a + 2.*a*a*c*c + 2.*a*a*e*e + 2.*a*a*u*u-2.*a*a*w*w + 1.*c*c*c*c + 2.*c*c*e*e-2.*c*c*u*u-2.*c*c*w*w + 1.*e*e*e*e + 2.*e*e*u*u-2.*e*e*w*w + 1.*u*u*u*u-2.*u*u*w*w + 1.*w*w*w*w-4.*a*a*t*t + 8.*a*t*v*w-4.*v*v*w*w;
+    float a1 = 4.*a*a*a*b + 4.*a*a*c*d + 4.*a*a*e*f + 4.*a*b*c*c + 4.*c*c*c*d + 4.*c*c*e*f + 4.*a*b*e*e + 4.*c*d*e*e + 4.*e*e*e*f + 4.*a*b*u*u-4.*c*d*u*u + 4.*e*f*u*u-4.*a*b*w*w-4.*c*d*w*w-4.*e*f*w*w-8.*a*b*t*t + 8.*b*t*v*w;
+    float a2 = 6.*a*a*b*b + 2.*a*a*d*d + 2.*a*a*f*f + 2.*b*b*c*c + 6.*c*c*d*d + 2.*c*c*f*f + 2.*b*b*e*e + 2.*d*d*e*e + 6.*e*e*f*f + 2.*b*b*u*u-2.*d*d*u*u + 2.*f*f*u*u-2.*b*b*w*w-2.*d*d*w*w-2.*f*f*w*w + 8.*a*b*c*d + 8.*a*b*e*f + 8.*c*d*e*f-4.*b*b*t*t;
+    float a3 = 4.*a*b*b*b + 4.*a*b*d*d + 4.*a*b*f*f + 4.*b*b*c*d + 4.*c*d*d*d + 4.*c*d*f*f + 4.*b*b*e*f + 4.*d*d*e*f + 4.*e*f*f*f;
+    float a4 = 1.*b*b*b*b + 2.*b*b*d*d + 2.*b*b*f*f + 1.*d*d*d*d + 2.*d*d*f*f + 1.*f*f*f*f;
+
     //https://github.com/flightphone/shaderty/blob/master/staples_polynomial.py
 
-    vec3 roots = vec3(dist_infin);
-    int nroots = cubic(a3, a2, a1, a0, roots);
+    vec4 roots = vec4(dist_infin);
+    int nroots = quartic(a4, a3, a2, a1, a0, roots); //cubic(a3, a2, a1, a0, roots);
     
     
     float dist = dist_infin;
     vec3 pos = vec3(0.0);
     vec3 nor = vec3(0.0);
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         if (i >= nroots)
             break;
@@ -324,7 +282,7 @@ HIT giper3D(vec3 ro, vec3 rd, float t, float r)
     }
     if (dist < dist_infin)
     {
-        nor = vec3(0.+2.*pos.x*pos.y-4.*pos.x*pos.z-2.*t*pos.z, 0.+3.*pos.y*pos.y-4.*pos.y*pos.z+1.*pos.z*pos.z+1.*pos.x*pos.x-1.*t*t, 0.-2.*pos.y*pos.y+2.*pos.y*pos.z-2.*pos.x*pos.x-2.*t*pos.x);
+        nor = vec3(0.+4.*pos.x*pos.x*pos.x+4.*pos.x*pos.y*pos.y+4.*pos.x*pos.z*pos.z+4.*u*u*pos.x-4.*w*w*pos.x-8.*t*t*pos.x+8.*t*v*w, 0.+4.*pos.x*pos.x*pos.y+4.*pos.y*pos.y*pos.y+4.*pos.y*pos.z*pos.z-4.*u*u*pos.y-4.*w*w*pos.y, 0.+4.*pos.x*pos.x*pos.z+4.*pos.y*pos.y*pos.z+4.*pos.z*pos.z*pos.z+4.*u*u*pos.z-4.*w*w*pos.z);
         nor = normalize(nor);
     }
     return HIT(dist, nor, pos);
@@ -343,32 +301,28 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    //surface (x+y+z-a)(xy+yz+zx) - kxyz = 0
     vec3 light = normalize(vec3(0.0, 0.0, -1.0)); //light
     vec3 light2 = normalize(vec3(0.0, 0.0, 1.0)); //light
 
-    float ra = 3.0;
-    float g = 1.0;
+    float ra = 6.0;
+    float g = 2.0;
 
     float t = iTime/2.0;
     vec2 m = vec2(0.0, 0.0);
     //if  (iMouse.z > 0.0)
     {
-        //m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
+        m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
         //t = 0.;
     }
-    vec3 ro = vec3(0.0, 0.0, 8.); // camera
+    vec3 ro = vec3(0.0, 0.0, 9.5); // camera
     ro = rotateY(-m.x*TAU)*rotateX(-m.y*PI)*ro; //camera rotation
     
     
     const float fl = 1.5; // focal length
     float dist = dist_infin;
-    float fi = PI/4.5;
-    // mat3 rota  = rotateZ(t);
-    // mat3 rota_1  = rotateZ(-t);
-    mat3 rota  = rotateX(fi)*rotateY(-fi)*rotateX(-PI/2.)*rotateZ(PI/4.0)*rotateX(t)*rotateY(t);
-    mat3 rota_1  = rotateY(-t)*rotateX(-t)*rotateZ(-PI/4.0)*rotateX(PI/2.)*rotateY(fi)*rotateX(-fi);
-    //mat3 sky = rotateZ(0.0)*rotateY(PI/2.0);
+    mat3 rota  = rotateZ(t)*rotateY(-t);
+    mat3 rota_1  = rotateY(t)*rotateZ(-t);
+    mat3 sky = rotateZ(0.0)*rotateX(PI/2.0);
     
     vec2 torus = vec2(1.0,0.3);
     vec3 tot = vec3(0.0);
@@ -389,7 +343,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         HIT giper = giper3D(rota*ro, rota*rd, g, ra);
         if (giper.dist < dist)
         {
-            col = vec3(0.5, 0.5, 1.0);
+           col = vec3(0.5, 0.5, 1.0);
             vec3 backcol = vec3(1.0, 0.2, 0.2);
             vec3 nor = rota_1*giper.nor;
             col = culccolor(col, backcol, -rd, light, light2, nor);

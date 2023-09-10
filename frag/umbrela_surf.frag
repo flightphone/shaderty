@@ -110,66 +110,135 @@ vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
         col *= clamp(difu, 0.3, 1.0);
     return col;   
 }
-float eps = 0.0001;
-/// https://www.shadertoy.com/view/4lsfzj
-int quadratic(float A, float B, float C, out vec3 x) {
-   if (abs(A)  < eps)
-   {
-      if (abs(B) < eps)
-        return 0;
-      x[0] = -C/B;
-      return 1;  
-   }
-   float D = B*B - 4.0*A*C;
-   if (D < 0.0) return 0;
-   D = sqrt(D);
-   if (B < 0.0) D = -D;
-   x[0] = (-B-D)/(2.0*A);
-   x[1] = C/(A*x[0]);
-   return 2;
+
+//===================https://www.shadertoy.com/view/wsXGWS======================
+float sgn(float x) {
+  return x < 0.0? -1.0: 1.0; // Return 1 for x == 0
 }
 
-// Numerical Recipes algorithm for solving cubic equation
-int cubic0(float a, float b, float c, float d, out vec3 x) {
-  
-  if (abs(a) < eps) return quadratic(b,c,d,x);
-  //if (d == 0.0) return quadratic(a,b,c,x); // Need 0 too.
-  float tmp = a; a = b/tmp; b = c/tmp; c = d/tmp;
-  // solve x^3 + ax^2 + bx + c = 0
-  float Q = (a*a-3.0*b)/9.0;
-  float R = (2.0*a*a*a - 9.0*a*b + 27.0*c)/54.0;
-  float R2 = R*R, Q3 = Q*Q*Q;
-  if (R2 < Q3) {
-    float X = clamp(R/sqrt(Q3),-1.0,1.0);
-    float theta = acos(X);
-    float S = sqrt(Q); // Q must be positive since 0 <= R2 < Q3
-    x[0] = -2.0*S*cos(theta/3.0) - a/3.0;
-    x[1] = -2.0*S*cos((theta+2.0*PI)/3.0) - a/3.0;
-    x[2] = -2.0*S*cos((theta+4.0*PI)/3.0) - a/3.0;
-    return 3;
+int quadratic(float A, float B, float C, out vec2 res) {
+  float x1,x2;
+  float b = -0.5*B;
+  float q = b*b - A*C;
+  if (q < 0.0) return 0;
+  float r = b + sgn(b)*sqrt(q);
+  if (r == 0.0) {
+    x1 = C/A; x2 = -x1;
   } else {
-    float A = -sign(R)*pow(abs(R)+sqrt(R2-Q3),0.3333);
-    float B = A == 0.0 ? 0.0 : Q/A;
-    x[0] = (A+B) - a/3.0;
-    return 1;
+    x1 = C/r; x2 = r/A;
   }
+  res = vec2(x1,x2);
+  return 2;
 }
 
-int cubic(float A, float B, float C, float D, out vec3 x) {
-  int nroots;
-  // Some ill-conditioned coeffs can cause problems
-  // The worst is fixed by solving for reciprocal
-  if (abs(A) > abs(D)) {
-    nroots = cubic0(A,B,C,D,x);
+int quadratic(vec3 coeffs, out vec2 res) {
+  return quadratic(coeffs[0],coeffs[1],coeffs[2],res);
+}
+
+void eval(float X, float A, float B, float C, float D,
+          out float Q, out float Q1, out float B1,out float C2) {
+  float q0 = A*X;
+  B1 = q0+B;
+  C2 = B1*X+C;
+  Q1 = (q0+B1)*X + C2;
+  Q = C2*X + D;
+}
+
+// Solve: Ax^3 + Bx^2 + Cx + D == 0
+// Find one real root, then reduce to quadratic.
+int cubic(float A, float B, float C, float D, out vec3 res) {
+  float X,b1,c2;
+  if (A == 0.0) {
+    X = 1e8; A = B; b1 = C; c2 = D;
+  } else if (D == 0.0) {
+    X = 0.0; b1 = B; c2 = C;
   } else {
-    nroots = cubic0(D,C,B,A,x);
-    for (int i = 0; i < 3; i++) {
-      x[i] = 1.0/x[i];
+    X = -(B/A)/3.0;
+    float t,r,s,q,dq,x0;
+    eval(X,A,B,C,D,q,dq,b1,c2);
+    t = q/A; r = pow(abs(t),1.0/3.0); s = sgn(t);
+    t = -dq/A; if (t > 0.0) r = 1.324718*max(r,sqrt(t));
+    x0 = X - s*r;
+    if (x0 != X) {
+      for (int i = 0; i < 6; i++) {
+        X = x0;
+        eval(X,A,B,C,D,q,dq,b1,c2);
+        if (dq == 0.0) break;
+        x0 -= (q/dq);
+      }
+      if (abs(A)*X*X > abs(D/X)) {
+        c2 = -D/X; b1 = (c2 - C)/X;
+      }
     }
   }
-  return nroots;
+  res.x = X;
+  return 1 + quadratic(A,b1,c2,res.yz);
 }
-/// https://www.shadertoy.com/view/4lsfzj
+
+int cubic(vec4 coeffs, out vec3 res) {
+  float A = coeffs[0], B = coeffs[1], C = coeffs[2], D = coeffs[3];
+  return cubic(A,B,C,D,res);
+}
+
+// Special wrapper for cubic function for solving quartic.
+// Find largest real root of x**3 + a*x**2 + b*x + c
+// Assume c < 0
+float qcubic(float a, float b, float c) {
+  // c is always <= 0, but may be very
+  // small, in which case we return an
+  // approximation. Never return < 0.
+  //assert(c <= 0.0);
+  if (c == 0.0) return 0.0;
+  /*
+  if (keypress(CHAR_Q)) {
+    // This helps with double roots, but sometimes is
+    // completely the wrong thing to do.
+    // Further investigation required.
+    if (c > -1e-6) {
+      //assert(false);
+      if (b > 1e-10) return -c/b;
+      //if (b > 0.0) return -c/b; // Keep it simple.
+      if (b > -1e-4) return 0.0;
+    }
+  }
+  */
+  vec3 res;
+  int nroots = cubic(1.0,a,b,c,res);
+  if (nroots == 1) return res.x;
+  else return max(res.x,max(res.y,res.z));
+}
+
+int quartic(vec4 coeffs, out vec4 res) {
+  float c1 = coeffs[0];
+  float c2 = coeffs[1];
+  float c3 = coeffs[2];
+  float c4 = coeffs[3];
+  float alpha = 0.5*c1;
+  float A = c2-alpha*alpha;
+  float B = c3-alpha*A;
+  float a,b,beta,psi;
+  psi = qcubic(2.0*A-alpha*alpha, A*A+2.0*B*alpha-4.0*c4, -B*B);
+  //assert(!isnan(psi));
+  //assert(!isinf(psi));
+  //assert(psi >= 0.0);
+  a = sqrt(psi);
+  beta = 0.5*(A + psi);
+  if (psi <= 0.0) {
+    b = sqrt(max(beta*beta-c4,0.0));
+  } else {
+    b = 0.5*a*(alpha-B/psi);
+  }
+  int resn = quadratic(1.0,alpha+a,beta+b,res.xy);
+  vec2 tmp;
+  if (quadratic(1.0,alpha-a,beta-b,tmp) != 0) { 
+    res.zw = res.xy;
+    res.xy = tmp;
+    resn += 2;
+  }
+  return resn;
+}
+
+//https://www.shadertoy.com/view/wsXGWS
 
 
 HIT giper3D(vec3 ro, vec3 rd, float t, float r)
@@ -245,7 +314,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     //if  (iMouse.z > 0.0)
     {
         m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
-        //t = 0.;
+        t = 0.;
     }
     vec3 ro = vec3(0.0, 0.0, 8.); // camera
     ro = rotateY(-m.x*TAU)*rotateX(-m.y*PI)*ro; //camera rotation
