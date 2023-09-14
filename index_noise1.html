@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GLSL</title>
-    <script src="/node_modules/glslCanvas/dist/GlslCanvas.min.js"></script>
+    <!-- <script src="/js/GlslCanvas.min.js"></script> -->
+    <!--<script src="/node_modules/glsl-canvas-js/dist/umd/glsl-canvas.min.js" ></script>-->
 </head>
 <style>
     html,
@@ -18,13 +19,17 @@
   </style>
   
 <body>
-    <canvas id="glslCanvas" data-fragment-url="/frag/goursat_surf.frag" data-textures = "/img/lake_pier.webp"></canvas>
+    <canvas id="glslCanvas" class="glsl-canvas" data-fragment-url="/frag/noise1.frag" data-textures = "img/seamless-noise-texture.jpg"></canvas>
 </body>
-<script>
+
+
+<script type="module">
   //https://www.shadertoy.com/view/4sBGDy  
+  import GlslCanvas from './GlslCanvas2/GlslCanvas.js';
   var canvas = document.getElementById("glslCanvas");
   var sandbox = new GlslCanvas(canvas);
   canvas.style.width = '100%';
   canvas.style.height = '100vh';
 </script>
+
 </html>

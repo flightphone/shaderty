@@ -312,7 +312,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         //m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
         //t = 0.;
     }
-    vec3 ro = vec3(0.0, 0.0, 6.5); // camera
+    vec3 ro = vec3(0.0, 0.0, 5.5); // camera
     ro = rotateY(-m.x*TAU)*rotateX(-m.y*PI)*ro; //camera rotation
     
     

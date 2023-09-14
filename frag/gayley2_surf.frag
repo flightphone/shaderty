@@ -180,64 +180,6 @@ int cubic(vec4 coeffs, out vec3 res) {
   return cubic(A,B,C,D,res);
 }
 
-// Special wrapper for cubic function for solving quartic.
-// Find largest real root of x**3 + a*x**2 + b*x + c
-// Assume c < 0
-float qcubic(float a, float b, float c) {
-  // c is always <= 0, but may be very
-  // small, in which case we return an
-  // approximation. Never return < 0.
-  //assert(c <= 0.0);
-  if (c == 0.0) return 0.0;
-  /*
-  if (keypress(CHAR_Q)) {
-    // This helps with double roots, but sometimes is
-    // completely the wrong thing to do.
-    // Further investigation required.
-    if (c > -1e-6) {
-      //assert(false);
-      if (b > 1e-10) return -c/b;
-      //if (b > 0.0) return -c/b; // Keep it simple.
-      if (b > -1e-4) return 0.0;
-    }
-  }
-  */
-  vec3 res;
-  int nroots = cubic(1.0,a,b,c,res);
-  if (nroots == 1) return res.x;
-  else return max(res.x,max(res.y,res.z));
-}
-
-int quartic(vec4 coeffs, out vec4 res) {
-  float c1 = coeffs[0];
-  float c2 = coeffs[1];
-  float c3 = coeffs[2];
-  float c4 = coeffs[3];
-  float alpha = 0.5*c1;
-  float A = c2-alpha*alpha;
-  float B = c3-alpha*A;
-  float a,b,beta,psi;
-  psi = qcubic(2.0*A-alpha*alpha, A*A+2.0*B*alpha-4.0*c4, -B*B);
-  //assert(!isnan(psi));
-  //assert(!isinf(psi));
-  //assert(psi >= 0.0);
-  a = sqrt(psi);
-  beta = 0.5*(A + psi);
-  if (psi <= 0.0) {
-    b = sqrt(max(beta*beta-c4,0.0));
-  } else {
-    b = 0.5*a*(alpha-B/psi);
-  }
-  int resn = quadratic(1.0,alpha+a,beta+b,res.xy);
-  vec2 tmp;
-  if (quadratic(1.0,alpha-a,beta-b,tmp) != 0) { 
-    res.zw = res.xy;
-    res.xy = tmp;
-    resn += 2;
-  }
-  return resn;
-}
-
 //https://www.shadertoy.com/view/wsXGWS
 
 

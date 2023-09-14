@@ -18,7 +18,7 @@ uniform sampler2D u_tex1;
 
 
 /////=====================================================================================
-//roman  surface https://mathcurve.com/surfaces.gb/romaine/romaine.shtml
+//DUPIN CYCLIDE https://mathcurve.com/surfaces.gb/cycliddedupin/cyclidededupin.shtml
 #define PI 3.14159265359
 #define TAU 6.283185
 mat3 rotateX(float f)

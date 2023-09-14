@@ -80,9 +80,12 @@ vec2 lonlat (vec3 p)
     return vec2(1.0-lon, lat);
 }
 
-const float dist_infin = 100000.0;
+const float dist_infin = 5.0;
 const HIT hit_inf = HIT(100000.0, vec3(0.0), vec3(0.0));
+#define nn 128
+const float eps = 0.001;
 
+/*
 vec3 calcSkyReflect(vec3 rd, vec3 nor, mat3 sky)
 {
     vec3 n = nor;
@@ -94,8 +97,8 @@ vec3 calcSkyReflect(vec3 rd, vec3 nor, mat3 sky)
     return col;
 
 }
-
-vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light, vec3 nor)
+*/
+vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor)
 {
     vec3 col = col_in;
     float d = dot(rd, nor);
@@ -103,120 +106,18 @@ vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light, vec3 nor)
         col = backcol;
     
     nor *= -sign(d);
-    float difu = dot(nor, light);
-    col *= clamp(difu, 0.2, 1.0);
+    float difu1 = dot(nor, light1);
+    float difu2 = dot(nor, light2);
+    float difu = max(difu1, difu2);
+        col *= clamp(difu, 0.3, 1.0);
     return col;   
 }
 
-
-
-// f(x) = (|x|² + R² - r²)² - 4·R²·|xy|² = 0
-//analitic function https://www.shadertoy.com/view/4sBGDy
-float iTorus( in vec3 ro, in vec3 rd, in vec2 tor )
+float near_dist(vec3 poin, vec2 tor)
 {
-    float po = 1.0;
-    
-    float Ra2 = tor.x*tor.x;
-    float ra2 = tor.y*tor.y;
-	
-    float m = dot(ro,ro);
-    float n = dot(ro,rd);
-
-    // bounding sphere
-    {
-	float h = n*n - m + (tor.x+tor.y)*(tor.x+tor.y);
-	if( h<0.0 ) return -1.0;
-	//float t = -n-sqrt(h); // could use this to compute intersections from ro+t*rd
-    }
-    
-	// find quartic equation
-    float k = (m - ra2 - Ra2)/2.0;
-    float k3 = n;
-    float k2 = n*n + Ra2*rd.z*rd.z + k;
-    float k1 = k*n + Ra2*ro.z*rd.z;
-    float k0 = k*k + Ra2*ro.z*ro.z - Ra2*ra2;
-	
-    #if 1
-    // prevent |c1| from being too close to zero
-    if( abs(k3*(k3*k3 - k2) + k1) < 0.01 )
-    {
-        po = -1.0;
-        float tmp=k1; k1=k3; k3=tmp;
-        k0 = 1.0/k0;
-        k1 = k1*k0;
-        k2 = k2*k0;
-        k3 = k3*k0;
-    }
-	#endif
-
-    float c2 = 2.0*k2 - 3.0*k3*k3;
-    float c1 = k3*(k3*k3 - k2) + k1;
-    float c0 = k3*(k3*(-3.0*k3*k3 + 4.0*k2) - 8.0*k1) + 4.0*k0;
-
-    
-    c2 /= 3.0;
-    c1 *= 2.0;
-    c0 /= 3.0;
-    
-    float Q = c2*c2 + c0;
-    float R = 3.0*c0*c2 - c2*c2*c2 - c1*c1;
-    
-	
-    float h = R*R - Q*Q*Q;
-    float z = 0.0;
-    if( h < 0.0 )
-    {
-    	// 4 intersections
-        float sQ = sqrt(Q);
-        z = 2.0*sQ*cos( acos(R/(sQ*Q)) / 3.0 );
-    }
-    else
-    {
-        // 2 intersections
-        float sQ = pow( sqrt(h) + abs(R), 1.0/3.0 );
-        z = sign(R)*abs( sQ + Q/sQ );
-    }		
-    z = c2 - z;
-	
-    float d1 = z   - 3.0*c2;
-    float d2 = z*z - 3.0*c0;
-    if( abs(d1) < 1.0e-4 )
-    {
-        if( d2 < 0.0 ) return -1.0;
-        d2 = sqrt(d2);
-    }
-    else
-    {
-        if( d1 < 0.0 ) return -1.0;
-        d1 = sqrt( d1/2.0 );
-        d2 = c1/d1;
-    }
-
-    //----------------------------------
-	
-    float result = 1e20;
-
-    h = d1*d1 - z + d2;
-    if( h > 0.0 )
-    {
-        h = sqrt(h);
-        float t1 = -d1 - h - k3; t1 = (po<0.0)?2.0/t1:t1;
-        float t2 = -d1 + h - k3; t2 = (po<0.0)?2.0/t2:t2;
-        if( t1 > 0.0 ) result=t1; 
-        if( t2 > 0.0 ) result=min(result,t2);
-    }
-
-    h = d1*d1 - z - d2;
-    if( h > 0.0 )
-    {
-        h = sqrt(h);
-        float t1 = d1 - h - k3;  t1 = (po<0.0)?2.0/t1:t1;
-        float t2 = d1 + h - k3;  t2 = (po<0.0)?2.0/t2:t2;
-        if( t1 > 0.0 ) result=min(result,t1);
-        if( t2 > 0.0 ) result=min(result,t2);
-    }
-
-    return result;
+  vec2 v1 = normalize(poin.xy)*tor.x;
+  float d = length(poin - vec3(v1, 0.0)) - tor.y;
+  return d;
 }
 
 // df(x)/dx
@@ -227,19 +128,26 @@ vec3 nTorus( in vec3 pos, vec2 tor )
 }
 
 
-HIT giper3D(vec3 ro, vec3 rd, vec2 torus)
+
+HIT giper3D(vec3 ro, vec3 rd, vec2 tor)
 {
+    float t  = 0.;
     
-    float dist = iTorus( ro, rd, torus );
-    if( dist>0.0 )
+    for (int i = 0; i < nn; i++)
     {
-        vec3 pos = ro + dist*rd;
-        vec3 nor = nTorus( pos, torus );
-        return HIT(dist, nor, pos);
+      vec3 pos = ro + rd*t;
+      float d = near_dist(pos, tor);
+      if (d < eps)
+      {
+        vec3 nor = nTorus( pos, tor );
+        return HIT(d, nor, pos);
+      }
+      t += d;
+      if (t > dist_infin)
+        return hit_inf;
+
     }
-    else
-        return hit_inf;    
-    
+    return hit_inf;
 }
 
 vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
@@ -254,32 +162,37 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    
-    
+    //surface (x+y+z-a)(xy+yz+zx) - kxyz = 0
     vec3 light = normalize(vec3(0.0, 0.0, -1.0)); //light
+    vec3 light2 = normalize(vec3(0.0, 0.0, 1.0)); //light
 
-		
-    //
     
+
     float t = iTime;
     vec2 m = vec2(0.0, 0.0);
     //if  (iMouse.z > 0.0)
-    m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
+    {
+        m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
+        //t = 0.;
+    }
     vec3 ro = vec3(0.0, 0.0, 2.5); // camera
     ro = rotateY(-m.x*TAU)*rotateX(-m.y*PI)*ro; //camera rotation
     
     
     const float fl = 1.5; // focal length
     float dist = dist_infin;
+    float fi = PI/4.5;
+    
     mat3 rota  = rotateZ(t)*rotateY(-t);
     mat3 rota_1  = rotateY(t)*rotateZ(-t);
     //mat3 sky = rotateZ(0.0)*rotateX(PI/2.0);
     
-    vec2 torus = vec2(1.0,0.3);
-    
+    vec2 tor = vec2(1.0,0.3);
+    vec3 col = vec3(0.7, 0.7, 0.9); // background        
+
     vec3 tot = vec3(0.0);
     
-    #define AA 2
+    #define AA 3
     //antiblick
     for( int m=0; m<AA; m++ )
     for( int n=0; n<AA; n++ )
@@ -288,34 +201,30 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             // pixel coordinates
         vec2 o = vec2(float(m),float(n)) / float(AA) - 0.5;
         vec2 p = (-iResolution.xy + 2.0*(fragCoord+o))/iResolution.y;
-            
-        
         //vec2 p = (2.0*fragCoord-iResolution.xy)/iResolution.y;
+
         //vec3 rd = normalize( vec3(p,fl) ); // ray direction
         vec3 rd = GetRayDir(p, ro, vec3(0,0.,0), fl); //ray direction
-
-        HIT giper = giper3D(rota*ro, rota*rd, torus);
+        HIT giper = giper3D(rota*ro, rota*rd, tor);
         if (giper.dist < dist)
         {
-            //col = vec3(1.0, 1.0, 0.0);
-            vec3 backcol = vec3(0.0, 1.0, 1.0);
+           col = vec3(0.5, 0.5, 1.0);
+            vec3 backcol = vec3(1.0, 0.2, 0.2);
             vec3 nor = rota_1*giper.nor;
-            float x = aafi(vec2(giper.pos.x, giper.pos.y)) /TAU;
-            float y = aafi(vec2(torus.x - length(giper.pos.xy), giper.pos.z)) /TAU;
-            col = texture(iChannel0, vec2(x,y)).rgb;
-            col = culccolor(col, backcol, -rd, light, nor);
+            col = culccolor(col, backcol, -rd, light, light2, nor);
             // gamma
             //col = pow( col, vec3(0.4545) ); 
             //reflect
             //col = calcSkyReflect(-rd, nor, sky);
         }
-        col = sqrt( col );
         tot += col;
     }
     //antiblick
     tot /= float(AA*AA);
-   
     fragColor = vec4(tot,1.0);
+
+    
+    
     
 }
 
