@@ -115,9 +115,14 @@ vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
 
 float near_dist(vec3 poin, vec2 tor)
 {
-  vec2 v1 = normalize(poin.xy)*tor.x;
+  float k = 1.0;  
+  float fi  = aafi(poin.xy);
+  if (fi > PI)
+    k = -1.0;
+  
+  vec2 v1 = normalize(poin.xy*k)*tor.x;
   float d = length(poin - vec3(v1, 0.0)) - tor.y;
-  return d;
+  return abs(d);
 }
 
 // df(x)/dx
@@ -143,7 +148,7 @@ HIT giper3D(vec3 ro, vec3 rd, vec2 tor)
         return HIT(d, nor, pos);
       }
       t += d;
-      if (t > dist_infin)
+      if (t >= dist_infin)
         return hit_inf;
 
     }
@@ -173,7 +178,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     //if  (iMouse.z > 0.0)
     {
         m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
-        //t = 0.;
+        t = 0.;
     }
     vec3 ro = vec3(0.0, 0.0, 2.5); // camera
     ro = rotateY(-m.x*TAU)*rotateX(-m.y*PI)*ro; //camera rotation
