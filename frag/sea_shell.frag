@@ -62,7 +62,7 @@ vec2 lonlat(vec3 p) {
 
 const float dist_infin = 70.0;
 const HIT hit_inf = HIT(dist_infin, vec3(0.0), vec3(0.0));
-#define nn 128
+#define nn 256
 const float eps = 0.01;
 const float kk = 0.9;
 #define nu 4.0
@@ -189,7 +189,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, 0.0, -1.0)); //light
     vec3 light2 = normalize(vec3(0.0, 0.0, 1.0)); //light
 
-    float t =  iTime;
+    float t =  iTime/2.0;
     vec2 m = vec2(0.0, 0.0);
     //if  (iMouse.z > 0.0)
     // {
@@ -232,7 +232,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             HIT giper = giper3D(rota * (ro + shift), rota * rd, shell, coo);
             if(giper.dist < dist) {
                 //dist = giper.dist;
+                //float x = coo[3] /PI*2.0;
                 float x = coo[3] /TAU;
+                x = fract(x);
                 float y = aafi(vec2(coo[0] - length(giper.pos.xy), giper.pos.z-coo[2])) /TAU;
                 col = texture(iChannel0, vec2(x,y)).rgb;
                 backcol = texture(iChannel1, vec2(x,y)).rgb;

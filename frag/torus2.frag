@@ -261,7 +261,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 		
     //
     
-    float t = iTime;
+    float t = iTime/2.;
     vec2 m = vec2(0.0, 0.0);
     //if  (iMouse.z > 0.0)
     //m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
@@ -303,8 +303,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             //col = vec3(1.0, 1.0, 0.0);
             vec3 backcol = vec3(0.0, 1.0, 1.0);
             vec3 nor = rota_1*giper.nor;
-            float x = aafi(vec2(giper.pos.x, giper.pos.y)) /PI/2.0;
-            x = fract(x);
+            float x = aafi(vec2(giper.pos.x, giper.pos.y)) /TAU;
+            //x = fract(x);
             float y = aafi(vec2(torus.x - length(giper.pos.xy), giper.pos.z)) /TAU;
             y = 1.0 - y;
             col = texture(iChannel0, vec2(x,y)).rgb;
