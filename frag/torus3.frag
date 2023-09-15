@@ -113,16 +113,21 @@ vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
     return col;   
 }
 
-float near_dist(vec3 poin, vec2 tor)
+float near_dist(vec3 point, vec2 tor)
 {
-  float k = 1.0;  
-  float fi  = aafi(poin.xy);
-  if (fi > PI)
-    k = -1.0;
+    if (point.y < 0.0)
+    {
+        vec3 op = vec3(sign(point.x) * tor.x, 0.0, 0.0);
+        vec3 v1 = point - op;
+        vec2 v2 = normalize(v1.xz)*tor.y;
+        vec3 v3 = vec3(v2.x, 0.0, v2.y) + op;
+        return length(point - v3);
+    }
   
-  vec2 v1 = normalize(poin.xy*k)*tor.x;
-  float d = length(poin - vec3(v1, 0.0)) - tor.y;
-  return abs(d);
+  vec2 v1 = normalize(point.xy)*tor.x;
+  float d = abs(length(point - vec3(v1.x, v1.y, 0.0)) - tor.y);
+  
+  return d;
 }
 
 // df(x)/dx
@@ -178,7 +183,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     //if  (iMouse.z > 0.0)
     {
         m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
-        t = 0.;
+        //t = 0.;
     }
     vec3 ro = vec3(0.0, 0.0, 2.5); // camera
     ro = rotateY(-m.x*TAU)*rotateX(-m.y*PI)*ro; //camera rotation
@@ -197,7 +202,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
     vec3 tot = vec3(0.0);
     
-    #define AA 3
+    #define AA 2
     //antiblick
     for( int m=0; m<AA; m++ )
     for( int n=0; n<AA; n++ )

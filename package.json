@@ -1,7 +1,5 @@
 {
   "dependencies": {
-    "glsl-canvas-js": "^0.2.9",
-    "glslCanvas": "^0.2.6",
-    "xhr": "^2.6.0"
+    "glslCanvas": "^0.2.6"
   }
 }
