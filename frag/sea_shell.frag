@@ -63,7 +63,7 @@ vec2 lonlat(vec3 p) {
 const float dist_infin = 70.0;
 const HIT hit_inf = HIT(dist_infin, vec3(0.0), vec3(0.0));
 #define nn 256
-const float eps = 0.01;
+const float eps = 0.1;
 const float kk = 0.9;
 #define nu 4.0
 
@@ -194,7 +194,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //if  (iMouse.z > 0.0)
     // {
         m = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
-    //t = 0.;
+        t = 0.;
     // }
     vec3 ro = vec3(0.0, 0.0, 40.5); // camera
     ro = rotateY(-m.x * TAU) * rotateX(-m.y * PI) * ro; //camera rotation
