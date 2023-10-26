@@ -87,7 +87,9 @@ def cyclide(x, y, z, t) ->Poli:
 
     return (x*x + y*y + z*z + u*u - w*w)*(x*x + y*y + z*z + u*u - w*w) - k*((t*x - v*w)*(t*x - v*w) + u*u*y*y)
     #(x^2 + y^2 + z^2 + u^2 - w^2)^2 - 4((tx - v*w)^2 + u^2*y^2)
-
+def test(x, y, z, t):
+    return (x*x - x)*(y*y - y) - z
+    
 #clebsch_surface()
 #example_surfase()
 #gayley()
@@ -96,7 +98,7 @@ def cyclide(x, y, z, t) ->Poli:
 #roman
 
 sys.stdout = open("code.txt", "w")
-polynom = cyclide
+polynom = test
 x, y, z, t = param()
 r = polynom(x, y, z, t)
 print(r.format())
