@@ -21,7 +21,7 @@ uniform sampler2D u_tex1;
 /////=====================================================================================
 
 #define PI 3.14159265359
-#define TAU 6.283185
+#define TAU 6.28318530718
 mat3 rotateX(float f) {
     return mat3(vec3(1.0, 0.0, 0.0), vec3(0.0, cos(f), -sin(f)), vec3(.0, sin(f), cos(f)));
 }
@@ -42,14 +42,8 @@ struct HIT {
 };
 
 float aafi(vec2 p) {
-    float l = length(p);
-    float fi = asin(abs(p.y) / l);
-    float pst = step(0.0, p.y) * step(p.x, 0.0);
-    fi = fi + pst * (PI - 2.0 * fi);
-    pst = step(p.y, 0.0) * step(p.x, 0.0);
-    fi = fi + pst * PI;
-    pst = step(p.y, 0.0) * step(0.0, p.x);
-    fi = fi + pst * (2.0 * PI - 2.0 * fi);
+    float fi = atan(p.y, p.x);
+    fi += step(p.y, 0.0)*TAU;
     return fi;
 }
 
