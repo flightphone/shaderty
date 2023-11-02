@@ -206,6 +206,12 @@ HIT plane(vec3 ro, vec3 rd, vec3 po, vec3 nor)
     return HIT(t, nor, pos);    
     
 }
+vec3 planeCol(HIT giper)
+{
+    float h = 0.9;
+    float hh =  mod((floor(giper.pos.x/h) + floor(giper.pos.y/h)), 2.0);
+    return mix(col, vec3(0., .0, .3), hh);
+}
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
@@ -249,11 +255,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             HIT giper = plane(ro, rd, po, nor);
             if (giper.dist < dist)
             {
-                float h = 0.9;
                 dist = giper.dist;
-                float hh =  mod((floor(giper.pos.x/h) + floor(giper.pos.y/h)), 2.0);
-                col = mix(col, vec3(0., .0, .3), hh);
+                col = planeCol(giper);
             }
+            
             
             giper = giper3D(rota*ro, rota*rd);
             if (giper.dist < dist)
@@ -267,7 +272,26 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 vec3 tx = texture(iChannel0, vec2(xx,yy)).rgb;
                 
                 tx = tx*amb + tx*dif;
-                col = mix(col, tx, 0.5);
+                //col = mix(col, tx, 0.5);
+                //col = tx;
+
+                //refract
+                float n12 = 1.2;
+                vec3 rd1 = refract(rd, nor, n12);
+                vec3 ro1 = ro + giper.dist * rd + 0.7 * dist_infin * rd1;
+                rd1 = -rd1;
+                giper = giper3D(rota*ro1, rota*rd1);
+                if (giper.dist < dist_infin)
+                {
+                    vec3 nor = rota_1*giper.nor;
+                    ro1 = ro1 + rd1 * giper.dist;
+                    rd1 = refract(-rd1, -nor, 1.0/n12);
+
+                    col = mix(col, tx, 0.5);
+                }
+                else
+                    col = tx;
+
             }
             
             // gamma        
