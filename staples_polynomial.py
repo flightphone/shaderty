@@ -87,6 +87,13 @@ def cyclide(x, y, z, t) ->Poli:
 
     return (x*x + y*y + z*z + u*u - w*w)*(x*x + y*y + z*z + u*u - w*w) - k*((t*x - v*w)*(t*x - v*w) + u*u*y*y)
     #(x^2 + y^2 + z^2 + u^2 - w^2)^2 - 4((tx - v*w)^2 + u^2*y^2)
+
+def cylinder(x, y, z, t) ->Poli:
+    return x*x + y*y - t*t
+
+def shpere(x, y, z, t) ->Poli:
+    return x*x + y*y + z*z - t*t
+
 def test(x, y, z, t):
     return (x*x - x)*(y*y - y) - z
     
@@ -98,7 +105,7 @@ def test(x, y, z, t):
 #roman
 
 sys.stdout = open("code.txt", "w")
-polynom = test
+polynom = shpere
 x, y, z, t = param()
 r = polynom(x, y, z, t)
 print(r.format())

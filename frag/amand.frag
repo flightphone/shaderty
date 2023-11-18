@@ -22,7 +22,7 @@ uniform sampler2D u_tex1;
 #define PI 3.14159265359
 #define TAU 6.283185
 
-const float dist_infin = 9.0;
+const float dist_infin = 3.0;
 #define nn 128
 const float eps = 0.001;
 
@@ -80,35 +80,17 @@ float smin( float a, float b, float k )
     return mix( b, a, h ) - k*h*(1.0-h);
 }
 
+float sdOctahedron( vec3 p, float s)
+{
+  p = abs(p);
+  return (p.x+p.y+p.z-s)*0.57735027;
+}
+
 float map( in vec3 pos )
 {
 
-    vec3 pos1 = pos - vec3(0., 0., 0.85);  //shift
-    //vec3 pos1 = pos;
-    float d1 = sdSphere(pos1 - vec3(0., 0., -1.6), 0.15);
-    float d2 = sdSphere(pos1 - vec3(0., 0., -1.79), 0.05);
-    d1 = smin(d1, d2, 0.02);
-    d2 = sdCappedCone(pos1-vec3(0.0, 0.0, -1.45), 0.15, 0.25, 0.13);
-    d1 = smin(d1, d2, 0.01);
-
-    d2 = sdCappedCylinder(pos1 - vec3(0., 0.0, -1.3), 0.2, 0.13);
-    d1 = smin(d1, d2, 0.01);
-
-    d2 = sdEllipsoid(pos1 - vec3(0., 0.0, -1.3), vec3(0.22, 0.22, 0.02));
-    d1 = smin(d1, d2, 0.02);
-    d2 = sdTorus(pos1 - vec3(0., 0.0, -1.2), vec2(0.18, 0.05));
-    d1 = smin(d1, d2, 0.01);
-    d2 = sdCappedCone(pos1-vec3(0.0, 0.0, -0.8), 0.5, 0.13, 0.25);
-    d1 = smin(d1, d2, 0.02);
-
-
-    d2 = sdRoundedCylinder(pos1 - vec3(0.0, 0.0, -0.1), 0.17, 0.05, 0.15);
-    d1 = min(d1, d2);
-    d2 = sdEllipsoid(pos1 - vec3(0., 0.0, -0.1), vec3(0.5, 0.5, 0.2));
-    d1 = smin(d1, d2, 0.05);
-    d2 = sdRoundedCylinder(pos1 - vec3(0.0, 0.0, 0.07), 0.25, 0.01, 0.02);
-    d1 = smin(d1, d2, 0.02);
-    return d1;
+    float d = sdOctahedron(pos, 0.7);
+    return d;
 }
 
 // https://iquilezles.org/articles/normalsSDF
@@ -220,7 +202,7 @@ int quadratic(float A, float B, float C, out vec2 res) {
   return 2;
 }
 
-HIT cyl3D(vec3 ro, vec3 rd, float t, float h1, float h2)
+HIT cyl3D(vec3 ro, vec3 rd, float t)
 {
     float a = ro.x;
     float b = rd.x;
@@ -232,9 +214,9 @@ HIT cyl3D(vec3 ro, vec3 rd, float t, float h1, float h2)
     //https://github.com/flightphone/shaderty/blob/master/staples_polynomial.py
     //for generate this expression used python script staples_polynomial.py
 
-    float a0 = 1.*a*a + 1.*c*c-1.*t*t;
-    float a1 = 2.*a*b + 2.*c*d;
-    float a2 = 1.*b*b + 1.*d*d;
+    float a0 = 1.*a*a + 1.*c*c + 1.*e*e-1.*t*t;
+    float a1 = 2.*a*b + 2.*c*d + 2.*e*f;
+    float a2 = 1.*b*b + 1.*d*d + 1.*f*f;
 
     //https://github.com/flightphone/shaderty/blob/master/staples_polynomial.py
 
@@ -251,37 +233,20 @@ HIT cyl3D(vec3 ro, vec3 rd, float t, float h1, float h2)
         if (roots[i] < 0.0)
             continue;
         vec3 p = ro + roots[i]*rd;
-        if (p.z < h2 || p.z > h1)    
-            continue;
+        
         if (roots[i] < dist)    
         {
             dist = roots[i];
             pos = p;
         }
     }
+    
     if (dist < dist_infin)
     {
-        nor = vec3(0.+2.*pos.x, 0.+2.*pos.y, 0.);
+        nor = vec3(0.+2.*pos.x, 0.+2.*pos.y, 0.+2.*pos.z);
         nor = normalize(nor);
     }
-    vec3 nr = vec3(0., 0., -1.);
-    HIT giper = plane(ro, rd, vec3(0., 0., h2), nr);
-    if (giper.dist < dist && length(giper.pos.xy) <= t)
-    {
-        dist = giper.dist;
-        nor = nr;
-        pos = giper.pos;
-    }
-
-    nr = vec3(0., 0., 1.);
-    giper = plane(ro, rd, vec3(0., 0., h1), nr);
-    if (giper.dist < dist && length(giper.pos.xy) <= t)
-    {
-        dist = giper.dist;
-        nor = nr;
-        pos = giper.pos;
-    }
-
+    
     return HIT(dist, nor, pos);
     
 }
@@ -328,7 +293,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     mat3 rota  = rotateX(PI/2.0)*rotateZ(m.x*TAU)*rotateX(-m.y*PI);
     mat3 rota_1  = rotateX(m.y*PI)*rotateZ(-m.x*TAU)*rotateX(-PI/2.0);
     //mat3 sky = rotateY(t);
-    mat3 sky = rotateZ(t)*rotateX(PI/2.0);
+    mat3 sky = rotateZ(0.)*rotateX(PI/2.0);
     
     vec3 tot = vec3(0.0);
     
@@ -345,7 +310,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             vec3 col = skycol(sky*rd); 
             
             
-            HIT giper = cyl3D(rota*ro, rota*rd, 0.6, 1., -1.);
+            HIT giper = cyl3D(rota*ro, rota*rd, 0.7);
             
             if (giper.dist >= dist_infin)
             {
@@ -360,13 +325,14 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 
                 vec3 nor = rota_1*giper.nor;
                 float dif = clamp( dot(nor,light), 0.2, 1.0 );
-                float amb = 0.5 + 0.5*dot(nor,light2);
+                //float amb = 0.5 + 0.5*dot(nor,light2);
                 
-                vec3 tx = vec3(80./255.,200.0/255.,120.0/255.);
-                tx = tx*amb + tx*dif;
+                //vec3 tx = vec3(80./255.,200.0/255.,120.0/255.);
+                vec3 tx = vec3(0.698,0.098, 0.176);
+                tx = tx*dif;
                 
                 //refract
-                float n12 = 1.2;
+                float n12 = 1.5;
                 vec3 rd1 = refract(rd, nor, n12);
                 vec3 ro1 = ro + giper.dist * rd + 0.7 * dist_infin * rd1;
                 rd1 = -rd1;

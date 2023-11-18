@@ -59,18 +59,12 @@ struct HIT
     vec3 pos;
 };
 
-float aafi(vec2 p)
-{
-    float l = length(p);
-    float fi = asin(abs(p.y)/l);
-    float pst = step(0.0, p.y)*step(p.x, 0.0);
-    fi = fi + pst*(PI - 2.0*fi);
-    pst = step(p.y, 0.0)*step(p.x, 0.0);
-    fi = fi + pst*PI;
-    pst = step(p.y, 0.0)*step(0.0, p.x);
-    fi = fi + pst*(2.0*PI - 2.0*fi);
-    return fi;    
+float aafi(vec2 p) {
+    float fi = atan(p.y, p.x);
+    fi += step(p.y, 0.0)*TAU;
+    return fi;
 }
+
 
 //converts a vector on a sphere to longitude and latitude
 vec2 lonlat (vec3 p)
@@ -126,7 +120,25 @@ float sdTorus( vec3 p, vec2 t )
   return length(q)-t.y;
 }
 
-float map( in vec3 pos )
+float sdHexagram( in vec2 p, in float r )
+{
+    const vec4 k = vec4(-0.5,0.86602540378,0.57735026919,1.73205080757);
+    
+    p = abs(p);
+    p -= 2.0*min(dot(k.xy,p),0.0)*k.xy;
+    p -= 2.0*min(dot(k.yx,p),0.0)*k.yx;
+    p -= vec2(clamp(p.x,r*k.z,r*k.w),r);
+    return length(p)*sign(p.y);
+}
+
+float sdHexagram3( in vec3 p, in float h, in float r )
+{
+    float d = sdHexagram(p.xy, r);
+    vec2 w = vec2( d, abs(p.z) - h );
+    return min(max(w.x,w.y),0.0) + length(max(w,0.0)) - 0.05;
+}
+
+float map_old( in vec3 pos )
 {
     //return sdBoxFrame(pos, vec3(0.5,0.3,0.5), 0.025 );
     //return sdRoundBox(pos, vec3(0.5, 0.2, 0.15), 0.03);
@@ -136,6 +148,15 @@ float map( in vec3 pos )
     //return min(d1,d2);
     return max(d1,-d2);
 }
+
+float map( in vec3 pos )
+{
+    //return sdBoxFrame(pos, vec3(0.5,0.3,0.5), 0.025 );
+    //return sdRoundBox(pos, vec3(0.5, 0.2, 0.15), 0.03);
+    return sdHexagram3(pos, 0.2, 0.5);
+    
+}
+
 
 // https://iquilezles.org/articles/normalsSDF
 vec3 calcNormal( in vec3 pos )
@@ -207,7 +228,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     
     vec3 tot = vec3(0.0);
     
-    #define AA 3
+    #define AA 1
     //antiblick
     for( int m=0; m<AA; m++ )
     for( int n=0; n<AA; n++ )

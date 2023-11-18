@@ -1,7 +1,5 @@
-float a0 = 1.*a*a*c*c-1.*a*a*c-1.*a*c*c + 1.*a*c-1.*e;
-float a1 = 2.*a*a*c*d-1.*a*a*d-2.*a*c*d + 1.*a*d + 2.*a*b*c*c-2.*a*b*c-1.*b*c*c + 1.*b*c-1.*f;
-float a2 = 1.*a*a*d*d-1.*a*d*d + 4.*a*b*c*d-2.*a*b*d-2.*b*c*d + 1.*b*d + 1.*b*b*c*c-1.*b*b*c;
-float a3 = 2.*a*b*d*d-1.*b*d*d + 2.*b*b*c*d-1.*b*b*d;
-float a4 = 1.*b*b*d*d;
+float a0 = 1.*a*a + 1.*c*c + 1.*e*e-1.*t*t;
+float a1 = 2.*a*b + 2.*c*d + 2.*e*f;
+float a2 = 1.*b*b + 1.*d*d + 1.*f*f;
 
-nor = vec3(0.+2.*pos.x*pos.y*pos.y-2.*pos.x*pos.y-1.*pos.y*pos.y+1.*pos.y, 0.+2.*pos.x*pos.x*pos.y-1.*pos.x*pos.x-2.*pos.x*pos.y+1.*pos.x, 0.-1.);
+nor = vec3(0.+2.*pos.x, 0.+2.*pos.y, 0.+2.*pos.z);
