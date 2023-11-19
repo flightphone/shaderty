@@ -18,9 +18,12 @@ uniform sampler2D u_tex1;
 
 
 /////=====================================================================================
-
 #define PI 3.14159265359
 #define TAU 6.283185
+#define nn 128
+#define rot2(a)      mat2(cos(a), -sin(a), sin(a), cos(a)) 
+const float dist_infin = 4.0;
+const float eps = 0.01;
 
 float aafi(vec2 p) {
     float fi = atan(p.y, p.x);
@@ -43,26 +46,19 @@ vec3 csky(vec3 p)
     //return texture(iChannel1, p).rgb;
 }
 
-const float dist_infin = 4.0;
-#define nn 128
-const float eps = 0.01;
-
-
-float dot2( in vec3 v ) { return dot(v,v); }
-
-vec4 texChar(float char, vec2 uv) {
-    vec2 pt = uv/16.0;
-    pt.x += char/16.0;
-    pt.y += 12.0/16.0;
-    return texture(iChannel0, pt);
-}
-
-
 float sdBox( in vec2 p, in vec2 b )
 {
     vec2 d = abs(p)-b;
     return length(max(d,0.0)) + min(max(d.x,d.y),0.0);
     
+}
+
+//https://www.shadertoy.com/view/mlcyDj
+vec4 texChar(float char, vec2 uv) {
+    vec2 pt = uv/16.0;
+    pt.x += char/16.0;
+    pt.y += 12.0/16.0;
+    return texture(iChannel0, pt);
 }
 
 float sdTextBox ( vec2 p, vec2 b, float char ) {
@@ -71,7 +67,7 @@ float sdTextBox ( vec2 p, vec2 b, float char ) {
     float lt = (texChar(char, pn).w - 0.5);
     return max(lt,l); 
 }
-
+//===========================================
 
 float sdBox3( in vec3 p, in vec2 b, float h, float char)
 {
@@ -124,49 +120,25 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
     return normalize(i);
 }
 
-mat3 rotateX(float f)
-{
-    return mat3(
-    vec3(1.0,    0.0,      0.0),
-    vec3(0.0,	 cos(f),  -sin(f)), 	
-	vec3(.0, sin(f), cos(f))
-    );
-}
-
-
-mat3 rotateZ(float f)
-{
-    return mat3(
-    vec3(cos(f),    -sin(f),  0.0),
-    vec3(sin(f),	 cos(f),  0.0), 	
-	vec3(0.0, 0.0, 1.0)
-    );
-    
-}
-
-
-mat3 rotateY(float f)
-{
-    return mat3(
-    vec3(cos(f), 0.0,  sin(f)),
-    vec3(0.0,	 1.0,  0.0), 	
-	vec3(-sin(f), 0.0, cos(f))
-    );
-}
-
-
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    float t = iTime;
-    vec2 m = 3.* cos(.1*t + vec2(.5,.5)) + vec2(0.01, 0.01);
-    //if  (iMouse.z > 0.0)
-    //    m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
+    float t = iTime ;
     vec3 ro = vec3(0.0, 0.0, 2.5); // camera
-    ro = rotateY(-m.x*TAU)*rotateX(-m.y*PI)*ro; //camera rotation
+    vec2 m = cos(.3*t + vec2(.3,.3));
+    //if  (iMouse.z > 0.0)
+    m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
     
+    ro.yz *= rot2(m.y*PI); 
+    ro.xz *= rot2(-m.x*TAU);
     
     const float fl = 1.5; // focal length
     vec3 tot = vec3(0.0);
+    float text[4]; 
+    text[0] = 2.;
+    text[1] = 0.;
+    text[2] = 2.;
+    text[3] = 4.;
+     
     
     #define AA 2
     //antiblick
@@ -178,56 +150,30 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         vec2 p = (-iResolution.xy + 2.0*(fragCoord+o))/iResolution.y;
         vec3 rd = GetRayDir(p, ro, vec3(0,0.,0), fl); //ray direction
         vec3 col = vec3(0.5, 0.5, 1.);//csky(rd);
-        vec3 shift = vec3(1.5, 0., 0.);
+        vec3 shift = vec3(2.5, 0., 0.);
         vec3 sh = vec3(0.0);
         float shx = 1.0;
         vec3 nor = vec3(0.);
         float char = 6.;
-        float giper = steps((ro + shift), rd, 2.0);
-        if (giper < dist)
+        
+        for (int i = 0; i < 4; i++)
         {
-            dist = giper;
-            char = 2.0;
-            sh = shift;
+            shift.x -= shx;
+            float giper = steps((ro + shift), rd, text[i]);
+            if (giper < dist)
+            {
+                dist = giper;
+                char = text[i];
+                sh = shift;
+            }
         }
         
-        shift.x -= shx;
-        giper = steps((ro + shift), rd, .0);
-        if (giper < dist)
-        {
-            dist = giper;
-            char = 0.;
-            sh = shift;
-        }
-
-        
-        shift.x -= shx;
-        giper = steps((ro + shift), rd, 2.);
-        if (giper < dist)
-        {
-            dist = giper;
-            char = 2.;
-            sh = shift;
-        }
-        
-        shift.x -= shx;
-        giper = steps((ro + shift), rd, 4.);
-        if (giper < dist)
-        {
-            dist = giper;
-            char = 4.;
-            sh = shift;
-        }
-
         if (dist < dist_infin)
         {
             vec3 pos = (ro + sh) + dist*rd;
             vec3 nor = calcNormal(pos, char);
             col = csky(reflect(rd,normalize(nor)));
         }
-
-        // gamma        
-        //col = sqrt( col );
 	    tot += col;
     }
     //antiblick
@@ -235,7 +181,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     fragColor = vec4(tot,1.0);
     
 }
-
 /////=====================================================================================
 void main()
 {
