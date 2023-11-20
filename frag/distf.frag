@@ -76,8 +76,8 @@ vec2 lonlat (vec3 p)
 
 const float dist_infin = 5.0;
 const HIT hit_inf = HIT(dist_infin, vec3(0.0), vec3(0.0));
-#define nn 256
-const float eps = 0.001;
+#define nn 128
+const float eps = 0.01;
 
 vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light, vec3 nor)
 {
@@ -96,6 +96,12 @@ vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light, vec3 nor)
 
 
 float dot2( in vec3 v ) { return dot(v,v); }
+
+float sdSphere( vec3 p, float s )
+{
+  return length(p)-s;
+}
+
 float sdBoxFrame( vec3 p, vec3 b, float e)
 {
        p = abs(p  )-b;
@@ -138,6 +144,31 @@ float sdHexagram3( in vec3 p, in float h, in float r )
     return min(max(w.x,w.y),0.0) + length(max(w,0.0)) - 0.05;
 }
 
+float desp(vec3 p)
+{
+    return  0.05 * sin(20.*p.x)*sin(20.*p.y)*sin(20.*p.z);
+    //return sdTorus(p, vec2(0.1, 0.6));
+    //return 0.;
+}
+
+float sdSegment(in vec3 p, vec3 a, vec3 b)
+{
+    float L = length(b-a);
+    vec3 l = normalize(b-a);
+    vec3 sec = p-a;
+    float d = dot(sec, l);
+    if (d < 0.)
+        return length(sec);
+    if (d > L)    
+        return length(p-b);
+    return length (p - (a + d*l));
+}
+
+float sdSegmentR(in vec3 p, vec3 a, vec3 b, float r)
+{
+    return (sdSegment(p, a, b) - r) + desp(p);
+}    
+
 float map_old( in vec3 pos )
 {
     //return sdBoxFrame(pos, vec3(0.5,0.3,0.5), 0.025 );
@@ -153,7 +184,9 @@ float map( in vec3 pos )
 {
     //return sdBoxFrame(pos, vec3(0.5,0.3,0.5), 0.025 );
     //return sdRoundBox(pos, vec3(0.5, 0.2, 0.15), 0.03);
-    return sdHexagram3(pos, 0.2, 0.5);
+    //return sdHexagram3(pos, 0.2, 0.5);
+    //return sdSegmentR(pos, vec3(-.7, 0., 0.), vec3(.7, 0., 0.), 0.4);
+    return sdSphere(pos, 1.0) + desp(pos);
     
 }
 
@@ -228,7 +261,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     
     vec3 tot = vec3(0.0);
     
-    #define AA 1
+    #define AA 2
     //antiblick
     for( int m=0; m<AA; m++ )
     for( int n=0; n<AA; n++ )
