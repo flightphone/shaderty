@@ -281,6 +281,7 @@ float sdTexture(in vec3 p, float a, float b)
 
     float f3 = texture(iChannel0, vec2(x1,y1)).w;
     f3 = pow(f3, 0.1);
+    f3 = f3-1.0;
     
 
     vec3 val = vec3(x, y, f3);
@@ -288,48 +289,6 @@ float sdTexture(in vec3 p, float a, float b)
     return d;
 }    
 
-float udTriangle( vec3 p, vec3 a, vec3 b, vec3 c )
-{
-  vec3 ba = b - a; vec3 pa = p - a;
-  vec3 cb = c - b; vec3 pb = p - b;
-  vec3 ac = a - c; vec3 pc = p - c;
-  vec3 nor = cross( ba, ac );
-
-  return sqrt(
-    (sign(dot(cross(ba,nor),pa)) +
-     sign(dot(cross(cb,nor),pb)) +
-     sign(dot(cross(ac,nor),pc))<2.0)
-     ?
-     min( min(
-     dot2(ba*clamp(dot(ba,pa)/dot2(ba),0.0,1.0)-pa),
-     dot2(cb*clamp(dot(cb,pb)/dot2(cb),0.0,1.0)-pb) ),
-     dot2(ac*clamp(dot(ac,pc)/dot2(ac),0.0,1.0)-pc) )
-     :
-     dot(nor,pa)*dot(nor,pa)/dot2(nor) );
-}
-
-float udQuad( vec3 p, vec3 a, vec3 b, vec3 c, vec3 d )
-{
-  vec3 ba = b - a; vec3 pa = p - a;
-  vec3 cb = c - b; vec3 pb = p - b;
-  vec3 dc = d - c; vec3 pc = p - c;
-  vec3 ad = a - d; vec3 pd = p - d;
-  vec3 nor = cross( ba, ad );
-
-  return sqrt(
-    (sign(dot(cross(ba,nor),pa)) +
-     sign(dot(cross(cb,nor),pb)) +
-     sign(dot(cross(dc,nor),pc)) +
-     sign(dot(cross(ad,nor),pd))<3.0)
-     ?
-     min( min( min(
-     dot2(ba*clamp(dot(ba,pa)/dot2(ba),0.0,1.0)-pa),
-     dot2(cb*clamp(dot(cb,pb)/dot2(cb),0.0,1.0)-pb) ),
-     dot2(dc*clamp(dot(dc,pc)/dot2(dc),0.0,1.0)-pc) ),
-     dot2(ad*clamp(dot(ad,pd)/dot2(ad),0.0,1.0)-pd) )
-     :
-     dot(nor,pa)*dot(nor,pa)/dot2(nor) );
-}
 
 vec3 point(vec2 ll, float r)
 {
@@ -367,7 +326,7 @@ float map_old( in vec3 pos )
     return max(d1,-d2);
 }
 
-float map( in vec3 pos )
+float map6( in vec3 pos )
 {
     //return sdBoxFrame(pos, vec3(0.5,0.3,0.5), 0.025 );
     //return sdRoundBox(pos, vec3(0.5, 0.2, 0.15), 0.03);
@@ -419,22 +378,41 @@ float sdPolar(vec3 p)
 
 float sdArc(vec3 p)
 {
-    float k = 0.1;
-    float e = 0.5;
+    float ra = 0.1;
+    float k = 0.03;
+    float e = 0.8;
     float L = length(p.xy);
     float fi = aafi(p.xy);
     float d = dist_infin;
-    for (float i = 0. ; i < 6.; i++)
+    for (float i = 1. ; i < 6.; i++)
     {
-        float r = abs(L - k*(fi + TAU*i)) * 0.8;
+        float r = abs(L - k*(fi + TAU*i)) * e;
         d = min(d, r);
     }
+    float r = length(p.xy -vec2(k*TAU*6.0, 0.0)) * e;
+    d = min(d, r);
+
+    r = length(p.xy -vec2(k*TAU, 0.0)) * e;
+    d = min(d, r);
     d = sqrt(p.z*p.z * e * e  + d*d);
-    d -= 0.05;
+    d -= ra;
     return d;
 }
 
-float map3( in vec3 pos )
+float csw(vec3 p, float a, float b, float n)
+{
+    float t = aafi(p.xy);
+    float w = b*cos(n*t);
+    float w2 = b*cos(n*t + TAU/2.);
+    vec3 v = vec3(a*cos(t), a*sin(t), w);
+    vec3 v2 = vec3(a*cos(t), a*sin(t), w2);
+    float r = length(p-v)/4.;
+    float r2 = length(p-v2)/4.;
+    return min(r, r2) - 0.02;
+}
+
+
+float map( in vec3 pos )
 {
 
 /*
@@ -443,13 +421,13 @@ float map3( in vec3 pos )
     return smin(d, d2, 0.1);
 */    
 
+    //return sdSegment(pos, vec3(-.8, 0., 0.), vec3(.8, 0., 0.)) - 0.1;
+    //return sdArc(pos);
+    
+    //return sdTexture(pos, -1.5, 1.5) - 0.001;    
 
-    float d =  sdArc(pos);
-    float d2 = sdSphere(pos, 0.2);
-    //return smin(d, d2, 0.1);
-    return min(d, d2);
-
-//return sdTexture(pos, -1.5, 1.5) - 0.001;    
+    return csw(pos, 0.7, 0.5, 8.);
+    //return csw(pos, .6, 0.3, 8.);
 }
 vec3 calcNormal( in vec3 pos )
 {
