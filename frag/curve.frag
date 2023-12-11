@@ -92,10 +92,48 @@ float sdCosN(vec3 p, float a, float n) {
     return d;
 }
 
+
+float sdCosN2(vec2 p, float a, float n) {
+    
+    float fi = atan(p.y, p.x);
+    float L = length(p.xy);
+    float d = dist_infin;
+    fi += step(p.y, 0.0)*TAU;
+   
+    for (float i = 0.; i < 5.; i++)
+    {   
+        if (fract(n*i) == 0. && i > 0.)
+            break;  
+        float r = a * cos(n*fi + n*i*TAU);
+        d = min(abs(L - r), d);
+    }
+    float f = acos(L/a)/n;
+    for (float i = 0.; i < 2.; i++)
+    {
+        d = min(2.0 * abs(sin((fi - (f + i*TAU/n)) / 2.0)) * L, d);    
+        d = min(2.0 * abs(sin((fi + (f + i*TAU/n)) / 2.0)) * L, d);    
+        d = min(2.0 * abs(sin((fi - (f - i*TAU/n)) / 2.0)) * L, d);    
+        d = min(2.0 * abs(sin((fi + (f - i*TAU/n)) / 2.0)) * L, d);    
+    }
+    return d;
+}
+
+float opExtrusion( in vec3 p,  float a, float n, float h)
+{
+    float d = sdCosN2(p.xy, a, n);
+    vec2 w = vec2( d, abs(p.z) - h );
+    d =  min(max(w.x,w.y),0.0) + length(max(w,0.0));
+    d *= .5;
+    d -= 0.01;
+    return d;
+}
+
 float map( in vec3 pos )
 {
     //return sdPolar(pos, 1.0);
-    return sdCosN(pos, 1.0, 0.25);
+    //return sdCosN(pos, 1.0, 0.25);
+    return opExtrusion(pos, 1.0, 0.25, 0.15);
+
     //return sdBacket(pos, .9, .4, 3.5, 9.);
     //return sdEggBox(pos, -1., 1.);
 }
