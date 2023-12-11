@@ -315,53 +315,24 @@ float petal3(vec3 p, float w, float h)
     return d*0.5 - 0.02*(h+w);
 }
 
-float sdConePine3D(vec3 p, float a)
-{
-    float l = length(p.xy);
-    float h = -p.z + a/2.;
-    float d = sdCosNp(vec2(h, l), a);
-    
-    float n = 10.;
-    float m = 10.;
-    float st = 0.5;
-    float y = 1.0 - h/a;
-    float x = mod(atan(p.y, p.x), TAU)/TAU;
-    float row = floor(y*n);
-    y = y*n - row;
-    float shift = mod(st*row, 1.0);
-    x = mod(x - shift/m, 1.0);
-    x = fract(x*m);
-    
-    float rh = a/n;
-    float rw = (l-d)*TAU/m;
-    //calc patal in two row
-    float x1 = x;
-    float y1 = y*0.5 + 0.5;
-    float x2 = mod(x - st, 1.0);
-    float y2 = y*0.5;
-    float dl1 = petal(vec3(x1*rw, y1*rh, d), rw, rh);
-    float dl2 = petal(vec3(x2*rw, y2*rh, d), rw, rh);
-    float dl = min(dl1, dl2);
-    //return dl;
-    //calc patal
-    //float dl = toorow3D(x, y, d, step, rw, rh);
-    d*=0.3;
-    d = min(d, dl);
-    return d;
-}
-float fcolor(float x)
-{
-    return 0.35 + 0.1*sin(x*10.0); 
-}
 
 vec3 sdfColor;
 vec3 resColor;
 vec3 col1 = vec3(0.5019607843137255, 0.6705882352941176, 0.34509803921568627);
 vec3 col2 = vec3(0.4588235294117647, 0.16862745098039217, 0.21176470588235294);
+vec3 col3 = vec3(0.13333333333333333, 0.3254901960784314, 0.08235294117647059);
+vec3 col4 = vec3(0.4, 0.6509803921568628, 0.10588235294117647);
+float fi = PI/7.; 
+float fcolor(float x)
+{
+    return 0.35 + 0.1*sin(x*10.0); 
+}
 
 float petalArti(vec3 pos, float w, float h)
 {
-    vec3 p = rotateX(PI/7.)*pos;
+    //PI/7.
+    vec3 p = rotateX(fi)*pos;
+    
     float y = clamp(p.y/h, 0., 1.);
     float lh = .5;
     float yh = clamp((y - 1. + lh)/lh, 0., 1.); 
@@ -378,6 +349,79 @@ float petalArti(vec3 pos, float w, float h)
     
     return length(p - val)*0.4 - 0.001*(h+w);
 }
+
+float petalPine(vec3 pos, float w, float h)
+{
+    
+    vec3 p = rotateX(PI/7.)*pos;
+    float y = clamp(p.y/h, 0., 1.);
+    float lh = .5;
+    float yh = clamp((y - 1. + lh)/lh, 0., 1.); 
+    float d = cos(yh*PI/2.)/2.0;
+    
+    float x = clamp(p.x/w, 0.5-d, 0.5+d);
+    float midh = sin((0.5 - abs(x - 0.5))/0.5*PI/2.2)*(w+h)*0.03;
+
+    float z = 0.;
+    if (y < 1.-lh)
+        z = midh*y/(1.-lh);
+    else
+    {
+        float yyh = acos(2.*abs(x - 0.5))*2./PI*lh;
+        z = midh*((yyh + (1.-lh))-y)/(yyh + 0.001);
+    }
+    z*=(1. + y)*(1. + y);
+    
+    sdfColor = mix(col3, col1, vec3(y));
+    float pst = smoothstep(0.1, -0.1, (length(vec2(x-0.5, y - 0.5)) - 0.15));
+    z += pst*.01*(h+w);
+    sdfColor = mix(sdfColor, pow(col4, vec3(0.7)), pst);
+    
+    return length(p - vec3(x*w, y*h, z))*0.4 - 0.005*(h+w);
+}
+
+float sdConePine3D(vec3 p, float a)
+{
+    float l = length(p.xy);
+    float h = -p.z + a/2.;
+    float d = sdCosNp(vec2(h, l), a);
+    
+    float n = 13.;
+    float m = 8.;
+    float st = 0.5;
+    float y = 1.0 - h/a;
+    float x = mod(atan(p.y, p.x), TAU)/TAU;
+    float row = floor(y*n);
+    y = y*n - row;
+    float shift = mod(st*row, 1.0);
+    x = mod(x - shift/m, 1.0);
+    x = fract(x*m);
+    
+    float rh = 2.*a/n;
+    float rw = (l-d)*TAU/m;
+
+    float x1 = x;
+    float y1 = y*0.5 + 0.5;
+    float x2 = mod(x - st, 1.0);
+    float y2 = y*0.5;
+    
+    float dl1 = petalPine(vec3(x1*rw, y1*rh, d), rw, rh);
+        resColor = sdfColor;
+    float dl2 = petalPine(vec3(x2*rw, y2*rh, d), rw, rh);
+    if (dl2 < dl1)
+        resColor = sdfColor;
+
+    float dl = min(dl1, dl2);
+    
+    d*=0.3;
+    if (d < dl)
+        resColor = col3;
+    d = min(d, dl);
+    return d;
+}
+
+
+
 
 
 float sdArtichoke(vec3 p, float r)
@@ -397,7 +441,7 @@ float sdArtichoke(vec3 p, float r)
     float shift = mod(st*row, 1.0);
     x = mod(x - shift/m, 1.0);
     x = fract(x*m);
-    float rh = PI*r/n;
+    float rh = 1.5*PI*r/n;///cos(fi);
     float rw = l/length(p)*r*TAU/m;
     //float dl = toorow3D(x, y, d, step, rw, rh);
     //calc patal in two row
@@ -427,9 +471,10 @@ float map(in vec3 pos) {
    //return def1(pos, 0., 1., 1.);
    //return sdConePine(pos, 2.0);
    //return petalArti(pos, 1., 1.);
-   return sdArtichoke(pos, .8);
+   //return sdArtichoke(pos, .8);
    //return petal(pos, .6, .6);
-   //return sdConePine3D(pos, 2.0);
+   return sdConePine3D(pos, 2.);
+   //return petalPine(pos, 1., 1.);
 }
 
 // https://iquilezles.org/articles/normalsSDF
@@ -496,14 +541,14 @@ vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
     return col;   
 }
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec3 light = normalize(vec3(0.0, 1.0, 2.5)); //light
-    vec3 light2 = normalize(vec3(0.0, -1.0, -2.5)); //light
+    vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
+    vec3 light2 = normalize(vec3(0.0, -1.0, 2.5)); //light
     float t = iTime / 3.;
     vec2 m = vec2(0.0, 0.0);
     //if  (iMouse.z > 0.0)
     {
         m = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
-        //t = 0.;
+        t = 0.;
     }
     vec3 ro = vec3(0.0, 0.0, 2.); // camera
     ro = rotateY(-m.x * TAU) * rotateX(-m.y * PI) * ro; //camera rotation
