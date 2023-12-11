@@ -147,12 +147,3 @@ def param():
     t = Poli()
     t.p[0] = [(1, "t")]
     return x, y, z, t
-
-
-
-
-
-
-
-
-
