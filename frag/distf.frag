@@ -69,7 +69,7 @@ float aafi(vec2 p) {
 //converts a vector on a sphere to longitude and latitude
 vec2 lonlat (vec3 p)
 {
-    float lon = aafi(p.xy)/TAU;
+    float lon = aafi(p.xy)/2.0/PI;
     float lat = aafi(vec2(p.z, length(p.xy)))/PI;
     return vec2(lon, lat);
 }
@@ -187,16 +187,6 @@ float desp(vec3 p)
     return  f3;
 }
 
-float desp2(vec3 p)
-{
-    vec2 fon = lonlat(p); //get longitude and latitude
-    if (fon.y < 0.05 || fon.y > 0.95)        
-        return 0.;
-    float k = 150.0;
-    float f3 = sin(k*fon.x) + sin(k*fon.y);
-    return  f3*0.02;
-}
-
 float k = 15.;
 
 float ff (float x)
@@ -281,7 +271,6 @@ float sdTexture(in vec3 p, float a, float b)
 
     float f3 = texture(iChannel0, vec2(x1,y1)).w;
     f3 = pow(f3, 0.1);
-    f3 = f3-1.0;
     
 
     vec3 val = vec3(x, y, f3);
@@ -289,31 +278,23 @@ float sdTexture(in vec3 p, float a, float b)
     return d;
 }    
 
-
-vec3 point(vec2 ll, float r)
+float sdTexture2(in vec3 p, float a, float b)
 {
-    float f1 = ll.x * TAU;
-    float f2 = ll.y * PI;
-    float z = r*cos(f2);
-    float d = abs(r*sin(f2));
-    float x = d*cos(f1);
-    float y = d*sin(f1);
-    return vec3(x, y, z);
-}
+    float x = clamp(p.x, a, b);
+    float y = clamp(p.y, a, b);
 
-float sdDiscoBall(vec3 pos, float r)
-{
-    vec2 ll = lonlat(pos);
-    float n = 15.;
-    float n2 = 30.;
-    ll.x = floor(ll.x*n2);
-    ll.y = floor(ll.y*n);
-    vec3 a = point(vec2(ll.x/n2, ll.y/n), r);
-    vec3 b = point(vec2(ll.x/n2, (ll.y+1.)/n), r);
-    vec3 c = point(vec2((ll.x + 1.)/n2, (ll.y+1.)/n), r);
-    float d = dot(normalize(cross(b-a, c-a)), (pos - a));
-    return abs(d*0.9);
-}
+    float x1 = (x-a)/(b-a);
+    float y1 = (y-a)/(b-a);
+
+    float f3 = dot(texture(iChannel1, vec2(x1,y1)).rgb, vec3(0.3, 0.59, 0.11));
+    f3 = pow(f3, 0.01);
+    f3 = 1.0 - f3;
+    
+
+    vec3 val = vec3(x, y, -f3);
+    float d = length(p - val)/2.;
+    return d;
+}    
 
 float map_old( in vec3 pos )
 {
@@ -326,21 +307,20 @@ float map_old( in vec3 pos )
     return max(d1,-d2);
 }
 
-float map6( in vec3 pos )
+float map( in vec3 pos )
 {
     //return sdBoxFrame(pos, vec3(0.5,0.3,0.5), 0.025 );
     //return sdRoundBox(pos, vec3(0.5, 0.2, 0.15), 0.03);
     //return sdHexagram3(pos, 0.2, 0.5);
     //return sdSegmentR(pos, vec3(-.8, 0., 0.), vec3(.8, 0., 0.), 0.1);
-    //return sdSphere(pos, 1.3) + desp2(pos);
     //return sdSphere(pos, 1.3) + desp(pos);
     //return sdSegmentR(pos, vec3(-1., 0., 0.), vec3(1., 0., 0.), 0.2);
     //return sdFunP(pos, -1.5, 1.5) - 0.01;//  + desp(pos);
-    //return sdFun(pos, -1.5, 1.5) - 0.01;
+    //return sdFun(pos, -1.5, 1.5) - 0.02;
     //return sdFun3(pos, -1., 1.);
     //return sdEggBox(pos, -1., 1.) - 0.001;
     //return sdTexture(pos, -1.5, 1.5) - 0.001;
-    return sdDiscoBall(pos, 1.0);
+    return sdTexture2(pos, -1.5, 1.5) - 0.001;
     
 }
 
@@ -378,41 +358,22 @@ float sdPolar(vec3 p)
 
 float sdArc(vec3 p)
 {
-    float ra = 0.1;
-    float k = 0.03;
-    float e = 0.8;
+    float k = 0.1;
+    float e = 0.5;
     float L = length(p.xy);
     float fi = aafi(p.xy);
     float d = dist_infin;
-    for (float i = 1. ; i < 6.; i++)
+    for (float i = 0. ; i < 6.; i++)
     {
-        float r = abs(L - k*(fi + TAU*i)) * e;
+        float r = abs(L - k*(fi + TAU*i)) * 0.8;
         d = min(d, r);
     }
-    float r = length(p.xy -vec2(k*TAU*6.0, 0.0)) * e;
-    d = min(d, r);
-
-    r = length(p.xy -vec2(k*TAU, 0.0)) * e;
-    d = min(d, r);
     d = sqrt(p.z*p.z * e * e  + d*d);
-    d -= ra;
+    d -= 0.05;
     return d;
 }
 
-float csw(vec3 p, float a, float b, float n)
-{
-    float t = aafi(p.xy);
-    float w = b*cos(n*t);
-    float w2 = b*cos(n*t + TAU/2.);
-    vec3 v = vec3(a*cos(t), a*sin(t), w);
-    vec3 v2 = vec3(a*cos(t), a*sin(t), w2);
-    float r = length(p-v)/4.;
-    float r2 = length(p-v2)/4.;
-    return min(r, r2) - 0.02;
-}
-
-
-float map( in vec3 pos )
+float map3( in vec3 pos )
 {
 
 /*
@@ -421,13 +382,13 @@ float map( in vec3 pos )
     return smin(d, d2, 0.1);
 */    
 
-    //return sdSegment(pos, vec3(-.8, 0., 0.), vec3(.8, 0., 0.)) - 0.1;
-    //return sdArc(pos);
-    
-    //return sdTexture(pos, -1.5, 1.5) - 0.001;    
 
-    return csw(pos, 0.7, 0.5, 8.);
-    //return csw(pos, .6, 0.3, 8.);
+    float d =  sdArc(pos);
+    float d2 = sdSphere(pos, 0.2);
+    //return smin(d, d2, 0.1);
+    return min(d, d2);
+
+//return sdTexture(pos, -1.5, 1.5) - 0.001;    
 }
 vec3 calcNormal( in vec3 pos )
 {
@@ -516,7 +477,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             vec3 nor = rota_1*giper.nor;
             float dif = clamp( dot(nor,light), 0.0, 1.0 );
             float amb = 0.5 + 0.5*dot(nor,light2);
-            col = vec3(0.5,0.6,0.7)*amb + vec3(0.85,0.75,0.65)*dif;
+            col = vec3(0.2,0.3,0.4)*amb + vec3(0.85,0.75,0.65)*dif;
         }
         // gamma        
         col = sqrt( col );
