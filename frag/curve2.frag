@@ -140,30 +140,38 @@ float heir(vec3 p)
     float n = 20., 
           m = 20.,
           h = .1, //height pimple
-          r = 0.01; // radius pimple  
+          r = 0.02; // radius pimple  
 
-    vec3 ell = vec3(.6, 1., 1.2); //ellipsoid
+    vec3 ell = vec3(.4, .8, 1.2); //ellipsoid
     //vec3 ell = vec3(1., 1., 1.); //sphere
     float k0 = length(p/ell),
           k1 = length(p/(ell*ell)),
           dlon = TAU/n, dlat = PI/m, l = length(p.xy), 
-          //https://iquilezles.org/articles/distfunctions/ 
-          dz = k0*(k0-1.0)/k1, //distance to ellipsoid
           lon = mod(atan(p.y,p.x), TAU),
           lat = atan(l, p.z), //longitude and latitude
           lon1 = floor(lon/dlon)*dlon + 0.5*dlon,
-          lat1 = floor(lat/dlat)*dlat + 0.5*dlat; //longitude and latitude nearest pimple
-    
-    float x1 = ell.x * sin(lat1)*cos(lon1), 
+          lat1 = floor(lat/dlat)*dlat + 0.5*dlat, //longitude and latitude nearest pimple
+          x1 = ell.x * sin(lat1)*cos(lon1), 
           y1 = ell.y*sin(lat1)*sin(lon1), 
           z1 = ell.z * cos(lat1), //coordinate nearest pimple
           x = ell.x * sin(lat)*cos(lon), 
           y = ell.y *sin(lat)*sin(lon), 
-          z = ell.z * cos(lat), //coordinate point on ellipsoid
-          dxy = length(vec3(x, y, z) - vec3(x1, y1, z1)),
-          dp = (length(vec2(dxy, dz - clamp(dz, 0., h)))*0.5 - r); //dist to pimple  
+          z = ell.z * cos(lat), //coordinate point on ellipsoid,
+          //distance to ellipsoid 
+          dz = k0*(k0-1.0)/k1, //https://iquilezles.org/articles/distfunctions/
+          
+
+          dxy = length(vec3(x, y, z) - vec3(x1, y1, z1));
+
+    
+    vec2 d =  vec2(dxy, dz);
+    
+    //float dp = length(vec2(d.x, d.y - clamp(d.y, 0., h)))*0.5 - r; //distance to pimple 
+    float dp = length(vec2(d.x - (h - clamp(d.y, 0., h))/h*r, d.y - clamp(d.y, 0., h)))*0.5; //distance to the cone for cactus)))
+    //float dp = length(vec2(d.x - (h - clamp(d.y, 0., h))/h*r, d.y - clamp(d.y, 0., h)))*0.5 - 0.001; //distance to the cone for non-sharp spikes
    
     return min(dz, dp) ;
+    
 }
 
 
