@@ -128,21 +128,86 @@ float dCyl(vec3 p, float r, float h)
 	return length(vec2(r, h));
 }
 
-float sdCapsule( vec3 p, vec3 a, vec3 b, float r )
+
+
+float ellipse (vec3 p)
 {
-  vec3 pa = p - a, ba = b - a;
-  float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
-  return length( pa - ba*h ) - r;
+    //vec3 ell = vec3(.6, 1., 1.2); //ellipsoid
+    vec3 ell = vec3(.5, 1., 1.); //sphere
+    float k0 = length(p/ell),
+          k1 = length(p/(ell*ell)),
+          l = length(p.xy),
+          lon = mod(atan(p.y,p.x), TAU),
+          lat = atan(l, p.z), //longitude and latitude
+          x = ell.x * sin(lat)*cos(lon), 
+          y = ell.y *sin(lat)*sin(lon), 
+          z = ell.z * cos(lat); //coordinate point on ellipsoid,
+          //distance to ellipsoid 
+          vec3 ro = vec3(x, y, z);
+          vec3 nor = normalize(ro/ell/ell);
+          float dz = (length(p) - length(ro))/dot(nor, normalize(ro));
+          //float dz = (length(p - ro))*dot(nor, normalize(ro))*0.9;
+          
+          //dz = k0*(k0-1.0)/k1; //https://iquilezles.org/articles/distfunctions/
+          return dz;
+
 }
 
 float heir(vec3 p)
 {
     float n = 20., 
           m = 20.,
-          h = .1, //height pimple
+          h = .2, //height pimple
           r = 0.02; // radius pimple  
 
-    vec3 ell = vec3(.4, .8, 1.2); //ellipsoid
+    vec3 ell = vec3(.6, 1., 1.2); //ellipsoid
+    //vec3 ell = vec3(1., 1., 1.); //sphere
+    float k0 = length(p/ell),
+          k1 = length(p/(ell*ell)),
+          dlon = TAU/n, dlat = PI/m, l = length(p.xy), 
+          lon = mod(atan(p.y,p.x), TAU),
+          lat = atan(l, p.z), //longitude and latitude
+          lon1 = floor(lon/dlon)*dlon + 0.5*dlon,
+          lat1 = clamp(floor(lat/dlat),2., m-2.)*dlat + 0.5*dlat, //longitude and latitude nearest pimple
+          x1 = ell.x * sin(lat1)*cos(lon1), 
+          y1 = ell.y*sin(lat1)*sin(lon1), 
+          z1 = ell.z * cos(lat1), //coordinate nearest pimple
+          x = ell.x * sin(lat)*cos(lon), 
+          y = ell.y *sin(lat)*sin(lon), 
+          z = ell.z * cos(lat), //coordinate point on ellipsoid,
+          //distance to ellipsoid 
+          dz = k0*(k0-1.0)/k1, //https://iquilezles.org/articles/distfunctions/
+          
+
+          dxy = length(vec3(x, y, z) - vec3(x1, y1, z1));
+
+    
+    vec2 d =  vec2(dxy, dz);
+    //h = abs(sin(lon1))*h;
+    
+    //float dp = length(vec2(d.x, d.y - clamp(d.y, 0., h)))*0.5 - r; //distance to pimple
+    
+    float dp = length(vec2(d.x - (h - clamp(d.y, 0., h))/h*r, d.y - clamp(d.y, 0., h)))*0.5; //distance to the cone for cactus)))
+    //float dp = length(vec2(d.x - (h - clamp(d.y, 0., h))/h*r, d.y - clamp(d.y, 0., h)))*0.5 - 0.001; //distance to the cone for non-sharp spikes
+   
+    return min(dz, dp) ;
+    //return dp;
+    
+}
+float sdCapsule( vec3 p, vec3 a, vec3 b, float r )
+{
+  vec3 pa = p - a, ba = b - a;
+  float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
+  return length( pa - ba*h ) - r;
+}
+float heir2(vec3 p)
+{
+    float n = 20., 
+          m = 20.,
+          h = .4, //height pimple
+          r = 0.01; // radius pimple  
+
+    vec3 ell = vec3(.6, 1., 1.2); //ellipsoid
     //vec3 ell = vec3(1., 1., 1.); //sphere
     float k0 = length(p/ell),
           k1 = length(p/(ell*ell)),
@@ -158,22 +223,16 @@ float heir(vec3 p)
           y = ell.y *sin(lat)*sin(lon), 
           z = ell.z * cos(lat), //coordinate point on ellipsoid,
           //distance to ellipsoid 
-          dz = k0*(k0-1.0)/k1, //https://iquilezles.org/articles/distfunctions/
-          
+          dz = k0*(k0-1.0)/k1; //https://iquilezles.org/articles/distfunctions/
+          vec3 a = vec3(x1, y1, z1);
+          vec3 b = a + normalize(a)*h;
+          vec3 p2 = vec3(x, y, z);
+          p2 += dz*normalize(p2/ell/ell);
+          float dp = sdCapsule(p2, a, b, r)*0.5;
 
-          dxy = length(vec3(x, y, z) - vec3(x1, y1, z1));
-
-    
-    vec2 d =  vec2(dxy, dz);
-    
-    //float dp = length(vec2(d.x, d.y - clamp(d.y, 0., h)))*0.5 - r; //distance to pimple 
-    float dp = length(vec2(d.x - (h - clamp(d.y, 0., h))/h*r, d.y - clamp(d.y, 0., h)))*0.5; //distance to the cone for cactus)))
-    //float dp = length(vec2(d.x - (h - clamp(d.y, 0., h))/h*r, d.y - clamp(d.y, 0., h)))*0.5 - 0.001; //distance to the cone for non-sharp spikes
-   
-    return min(dz, dp) ;
+    return min(dz, dp);
     
 }
-
 
 float map(in vec3 pos) {
     
@@ -182,6 +241,7 @@ float map(in vec3 pos) {
     //return sdf_fun(pos);
     //return dCyl(pos, 0.2, .5);
     return heir(pos);
+    //return ellipse(pos);
 
 
     
