@@ -25,22 +25,6 @@ const float dist_infin = 10.0;
 #define nn 128
 const float eps = 0.001;
 
-//https://iquilezles.org/articles/smin/
-// polynomial smooth min 1 (k=0.1)
-float sminq(float a, float b, float k) {
-    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
-    return mix(b, a, h) - k * h * (1.0 - h);
-}
-float smin(float d1, float d2)
-{
-    /*
-    if (d1 < d2)
-        return sminq(d1, d2, 0.5);
-    else
-        return d2;    
-    */
-    return d1* d2 /length(vec2(d1, d2));    
-}
 
 float sdCosN(vec3 p, float a, float n) {
 
@@ -78,11 +62,6 @@ float sdCosN(vec3 p, float a, float n) {
     return d;
 }
 
-float aafi(vec2 p) {
-    float fi = atan(p.y, p.x);
-    fi += step(p.y, 0.0) * TAU;
-    return fi;
-}
 mat3 rotateX(float f) {
     return mat3(vec3(1.0, 0.0, 0.0), vec3(0.0, cos(f), -sin(f)), vec3(.0, sin(f), cos(f)));
 }
@@ -131,19 +110,71 @@ float sdf_fun(vec3 p)
 {
     float d1 = sdff1(p.xy, 0., .8);
     float d2 = sdff2(p.yx, 0., 1.28);
-    float d =  smin(d1, d2);
+    float d =  min(d1, d2);
     d = length(vec2(p.z, d));
     d *= 0.5;
     d -= 0.06;
     return d;
 }
 
+// FIXME need better hair SDF
+float dCyl(vec3 p, float r, float h)
+{
+	r = max(.0, length(p.xy) - r);
+    if (p.z < 0.)
+        h = p.z;
+    else
+        h = max(0., p.z - h);
+	return length(vec2(r, h));
+}
+
+float sdCapsule( vec3 p, vec3 a, vec3 b, float r )
+{
+  vec3 pa = p - a, ba = b - a;
+  float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
+  return length( pa - ba*h ) - r;
+}
+
+float heir(vec3 p)
+{
+    float n = 20., 
+          m = 20.,
+          h = .1, //height pimple
+          r = 0.01; // radius pimple  
+
+    vec3 ell = vec3(.6, 1., 1.2); //ellipsoid
+    //vec3 ell = vec3(1., 1., 1.); //sphere
+    float k0 = length(p/ell),
+          k1 = length(p/(ell*ell)),
+          dlon = TAU/n, dlat = PI/m, l = length(p.xy), 
+          //https://iquilezles.org/articles/distfunctions/ 
+          dz = k0*(k0-1.0)/k1, //distance to ellipsoid
+          lon = mod(atan(p.y,p.x), TAU),
+          lat = atan(l, p.z), //longitude and latitude
+          lon1 = floor(lon/dlon)*dlon + 0.5*dlon,
+          lat1 = floor(lat/dlat)*dlat + 0.5*dlat; //longitude and latitude nearest pimple
+    
+    float x1 = ell.x * sin(lat1)*cos(lon1), 
+          y1 = ell.y*sin(lat1)*sin(lon1), 
+          z1 = ell.z * cos(lat1), //coordinate nearest pimple
+          x = ell.x * sin(lat)*cos(lon), 
+          y = ell.y *sin(lat)*sin(lon), 
+          z = ell.z * cos(lat), //coordinate point on ellipsoid
+          dxy = length(vec3(x, y, z) - vec3(x1, y1, z1)),
+          dp = (length(vec2(dxy, dz - clamp(dz, 0., h)))*0.5 - r); //dist to pimple  
+   
+    return min(dz, dp) ;
+}
+
 
 float map(in vec3 pos) {
     
     
-    return sdCosN(pos, 1.0, .3);
+    //return sdCosN(pos, 1.0, .3);
     //return sdf_fun(pos);
+    //return dCyl(pos, 0.2, .5);
+    return heir(pos);
+
 
     
 }
