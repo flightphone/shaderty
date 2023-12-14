@@ -352,8 +352,9 @@ float petalArti(vec3 pos, float w, float h)
 
 float petalPine(vec3 pos, float w, float h)
 {
+    float rs = 4.*cos(iTime) + 8.;
+    vec3 p = rotateX(PI/rs)*pos;
     
-    vec3 p = rotateX(PI/7.)*pos;
     float y = clamp(p.y/h, 0., 1.);
     float lh = .5;
     float yh = clamp((y - 1. + lh)/lh, 0., 1.); 
@@ -524,7 +525,7 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #define AA 2
 #endif
 */
-#define AA 1
+#define AA 2
 
 vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor)
 {
@@ -561,7 +562,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
     vec3 tot = vec3(0.0);
 
-    //antiblick
+    //antialiasing
     for(int m = 0; m < AA; m++) for(int n = 0; n < AA; n++) {
             vec2 o = vec2(float(m), float(n)) / float(AA) - 0.5;
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
@@ -571,22 +572,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             HIT giper = giper3D(rota * ro, rota * rd);
             if(giper.dist < dist) {
                 vec3 nor = rota_1 * giper.nor;
-
                 col = resColor;
-                
-                
-                //float dif = clamp(dot(nor, light), 0.4, 1.0);
-                //float amb = 0.2 + 0.5 * dot(nor, light2);
-                //col = vec3(0.2, 0.3, 0.4) * amb + vec3(0.85, 0.75, 0.65) * dif;
                 col = calccolor(col, col, -rd, light, light2, nor);
-                col = pow( col, vec3(0.7));
             }
-        // gamma        
-            //col = sqrt(col);
             tot += col;
         }
-    //antiblick
-    tot /= float(AA * AA);
+    
+    tot = pow(tot, vec3(0.7))/float(AA);
+    //antialiasing
     fragColor = vec4(tot, 1.0);
 }
 /////=====================================================================================
