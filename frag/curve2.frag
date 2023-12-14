@@ -25,7 +25,6 @@ const float dist_infin = 10.0;
 #define nn 128
 const float eps = 0.001;
 
-
 float sdCosN(vec3 p, float a, float n) {
 
     float fi = atan(p.y, p.x);
@@ -42,21 +41,20 @@ float sdCosN(vec3 p, float a, float n) {
     }
     float f = acos(L / a) / n;
     for(float i = 0.; i < 10.; i++) {
-        
+
         d2 = min(2.0 * abs(sin((fi - (f + i * TAU / n)) / 2.0)) * L, d2);
         d2 = min(2.0 * abs(sin((fi + (f + i * TAU / n)) / 2.0)) * L, d2);
         d2 = min(2.0 * abs(sin((fi - (f - i * TAU / n)) / 2.0)) * L, d2);
         d2 = min(2.0 * abs(sin((fi + (f - i * TAU / n)) / 2.0)) * L, d2);
-        
-        
+
     }
     //float d = smin2(d1, d2);
     float e = 1.;
-    float d = min(d1*e, d2);
+    float d = min(d1 * e, d2);
     //float d = d2;
-    if (d < 0.)
+    if(d < 0.)
         d = 0.;
-    d = length(vec2(p.z*e, d));
+    d = length(vec2(p.z * e, d));
     d *= .6;
     d -= 0.03;
     return d;
@@ -75,42 +73,35 @@ mat3 rotateY(float f) {
     return mat3(vec3(cos(f), 0.0, sin(f)), vec3(0.0, 1.0, 0.0), vec3(-sin(f), 0.0, cos(f)));
 }
 
-
 float sdRound(vec3 p, float r, float f) {
     float d = abs(length(p.xy) - r * cos(f));
     d = length(vec2(p.z - r * sin(f), d));
     return d;
 }
-float f1(float x)
-{
-    return x*x*2.;
+float f1(float x) {
+    return x * x * 2.;
 }
 
-float sdff1(vec2 p, float a, float b)
-{
+float sdff1(vec2 p, float a, float b) {
     float x = clamp(p.x, a, b);
     float v = f1(x);
     return length(p - vec2(x, v));
 }
 
-float f2(float x)
-{
-    return sqrt(x/2.);
+float f2(float x) {
+    return sqrt(x / 2.);
 }
 
-float sdff2(vec2 p, float a, float b)
-{
+float sdff2(vec2 p, float a, float b) {
     float x = clamp(p.x, a, b);
     float v = f2(x);
     return length(p - vec2(x, v));
 }
 
-
-float sdf_fun(vec3 p)
-{
+float sdf_fun(vec3 p) {
     float d1 = sdff1(p.xy, 0., .8);
     float d2 = sdff2(p.yx, 0., 1.28);
-    float d =  min(d1, d2);
+    float d = min(d1, d2);
     d = length(vec2(p.z, d));
     d *= 0.5;
     d -= 0.06;
@@ -118,133 +109,145 @@ float sdf_fun(vec3 p)
 }
 
 // FIXME need better hair SDF
-float dCyl(vec3 p, float r, float h)
-{
-	r = max(.0, length(p.xy) - r);
-    if (p.z < 0.)
+float dCyl(vec3 p, float r, float h) {
+    r = max(.0, length(p.xy) - r);
+    if(p.z < 0.)
         h = p.z;
     else
         h = max(0., p.z - h);
-	return length(vec2(r, h));
+    return length(vec2(r, h));
 }
 
-
-
-float ellipse (vec3 p)
-{
+float ellipse(vec3 p) {
     //vec3 ell = vec3(.6, 1., 1.2); //ellipsoid
     vec3 ell = vec3(.5, 1., 1.); //sphere
-    float k0 = length(p/ell),
-          k1 = length(p/(ell*ell)),
-          l = length(p.xy),
-          lon = mod(atan(p.y,p.x), TAU),
-          lat = atan(l, p.z), //longitude and latitude
-          x = ell.x * sin(lat)*cos(lon), 
-          y = ell.y *sin(lat)*sin(lon), 
-          z = ell.z * cos(lat); //coordinate point on ellipsoid,
+    float k0 = length(p / ell), k1 = length(p / (ell * ell)), l = length(p.xy), lon = mod(atan(p.y, p.x), TAU), lat = atan(l, p.z), //longitude and latitude
+    x = ell.x * sin(lat) * cos(lon), y = ell.y * sin(lat) * sin(lon), z = ell.z * cos(lat); //coordinate point on ellipsoid,
           //distance to ellipsoid 
-          vec3 ro = vec3(x, y, z);
-          vec3 nor = normalize(ro/ell/ell);
-          float dz = (length(p) - length(ro))/dot(nor, normalize(ro));
+    vec3 ro = vec3(x, y, z);
+    vec3 nor = normalize(ro / ell / ell);
+    float dz = (length(p) - length(ro)) / dot(nor, normalize(ro));
           //float dz = (length(p - ro))*dot(nor, normalize(ro))*0.9;
-          
+
           //dz = k0*(k0-1.0)/k1; //https://iquilezles.org/articles/distfunctions/
-          return dz;
+    return dz;
 
 }
 
-float heir(vec3 p)
-{
-    float n = 20., 
-          m = 20.,
-          h = .2, //height pimple
-          r = 0.02; // radius pimple  
+float heir(vec3 p) {
+    float n = 20., m = 20., h = .2, //height pimple
+    r = 0.02; // radius pimple  
 
     vec3 ell = vec3(.6, 1., 1.2); //ellipsoid
     //vec3 ell = vec3(1., 1., 1.); //sphere
-    float k0 = length(p/ell),
-          k1 = length(p/(ell*ell)),
-          dlon = TAU/n, dlat = PI/m, l = length(p.xy), 
-          lon = mod(atan(p.y,p.x), TAU),
-          lat = atan(l, p.z), //longitude and latitude
-          lon1 = floor(lon/dlon)*dlon + 0.5*dlon,
-          lat1 = clamp(floor(lat/dlat),2., m-2.)*dlat + 0.5*dlat, //longitude and latitude nearest pimple
-          x1 = ell.x * sin(lat1)*cos(lon1), 
-          y1 = ell.y*sin(lat1)*sin(lon1), 
-          z1 = ell.z * cos(lat1), //coordinate nearest pimple
-          x = ell.x * sin(lat)*cos(lon), 
-          y = ell.y *sin(lat)*sin(lon), 
-          z = ell.z * cos(lat), //coordinate point on ellipsoid,
+    float k0 = length(p / ell), k1 = length(p / (ell * ell)), dlon = TAU / n, dlat = PI / m, l = length(p.xy), lon = mod(atan(p.y, p.x), TAU), lat = atan(l, p.z), //longitude and latitude
+    lon1 = floor(lon / dlon) * dlon + 0.5 * dlon, lat1 = clamp(floor(lat / dlat), 2., m - 2.) * dlat + 0.5 * dlat, //longitude and latitude nearest pimple
+    x1 = ell.x * sin(lat1) * cos(lon1), y1 = ell.y * sin(lat1) * sin(lon1), z1 = ell.z * cos(lat1), //coordinate nearest pimple
+    x = ell.x * sin(lat) * cos(lon), y = ell.y * sin(lat) * sin(lon), z = ell.z * cos(lat), //coordinate point on ellipsoid,
           //distance to ellipsoid 
-          dz = k0*(k0-1.0)/k1, //https://iquilezles.org/articles/distfunctions/
-          
+    dz = k0 * (k0 - 1.0) / k1, //https://iquilezles.org/articles/distfunctions/
 
-          dxy = length(vec3(x, y, z) - vec3(x1, y1, z1));
+    dxy = length(vec3(x, y, z) - vec3(x1, y1, z1));
 
-    
-    vec2 d =  vec2(dxy, dz);
+    vec2 d = vec2(dxy, dz);
     //h = abs(sin(lon1))*h;
-    
-    //float dp = length(vec2(d.x, d.y - clamp(d.y, 0., h)))*0.5 - r; //distance to pimple
-    
-    float dp = length(vec2(d.x - (h - clamp(d.y, 0., h))/h*r, d.y - clamp(d.y, 0., h)))*0.5; //distance to the cone for cactus)))
-    //float dp = length(vec2(d.x - (h - clamp(d.y, 0., h))/h*r, d.y - clamp(d.y, 0., h)))*0.5 - 0.001; //distance to the cone for non-sharp spikes
-   
-    return min(dz, dp) ;
-    //return dp;
-    
-}
-float sdCapsule( vec3 p, vec3 a, vec3 b, float r )
-{
-  vec3 pa = p - a, ba = b - a;
-  float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
-  return length( pa - ba*h ) - r;
-}
-float heir2(vec3 p)
-{
-    float n = 20., 
-          m = 20.,
-          h = .4, //height pimple
-          r = 0.01; // radius pimple  
 
-    vec3 ell = vec3(.6, 1., 1.2); //ellipsoid
-    //vec3 ell = vec3(1., 1., 1.); //sphere
-    float k0 = length(p/ell),
-          k1 = length(p/(ell*ell)),
-          dlon = TAU/n, dlat = PI/m, l = length(p.xy), 
-          lon = mod(atan(p.y,p.x), TAU),
-          lat = atan(l, p.z), //longitude and latitude
-          lon1 = floor(lon/dlon)*dlon + 0.5*dlon,
-          lat1 = floor(lat/dlat)*dlat + 0.5*dlat, //longitude and latitude nearest pimple
-          x1 = ell.x * sin(lat1)*cos(lon1), 
-          y1 = ell.y*sin(lat1)*sin(lon1), 
-          z1 = ell.z * cos(lat1), //coordinate nearest pimple
-          x = ell.x * sin(lat)*cos(lon), 
-          y = ell.y *sin(lat)*sin(lon), 
-          z = ell.z * cos(lat), //coordinate point on ellipsoid,
-          //distance to ellipsoid 
-          dz = k0*(k0-1.0)/k1; //https://iquilezles.org/articles/distfunctions/
-          vec3 a = vec3(x1, y1, z1);
-          vec3 b = a + normalize(a)*h;
-          vec3 p2 = vec3(x, y, z);
-          p2 += dz*normalize(p2/ell/ell);
-          float dp = sdCapsule(p2, a, b, r)*0.5;
+    //float dp = length(vec2(d.x, d.y - clamp(d.y, 0., h)))*0.5 - r; //distance to pimple
+
+    float dp = length(vec2(d.x - (h - clamp(d.y, 0., h)) / h * r, d.y - clamp(d.y, 0., h))) * 0.5; //distance to the cone for cactus)))
+    //float dp = length(vec2(d.x - (h - clamp(d.y, 0., h))/h*r, d.y - clamp(d.y, 0., h)))*0.5 - 0.001; //distance to the cone for non-sharp spikes
 
     return min(dz, dp);
-    
+    //return dp;
+
+}
+float sdCapsule(vec3 p, vec3 a, vec3 b, float r) {
+    vec3 pa = p - a, ba = b - a;
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - ba * h) - r;
+}
+float heir2(vec3 p) {
+    float n = 20., m = 20., h = .4, //height pimple
+    r = 0.01; // radius pimple  
+
+    vec3 ell = vec3(.6, 1., 1.2); //ellipsoid
+    //vec3 ell = vec3(1., 1., 1.); //sphere
+    float k0 = length(p / ell), k1 = length(p / (ell * ell)), dlon = TAU / n, dlat = PI / m, l = length(p.xy), lon = mod(atan(p.y, p.x), TAU), lat = atan(l, p.z), //longitude and latitude
+    lon1 = floor(lon / dlon) * dlon + 0.5 * dlon, lat1 = floor(lat / dlat) * dlat + 0.5 * dlat, //longitude and latitude nearest pimple
+    x1 = ell.x * sin(lat1) * cos(lon1), y1 = ell.y * sin(lat1) * sin(lon1), z1 = ell.z * cos(lat1), //coordinate nearest pimple
+    x = ell.x * sin(lat) * cos(lon), y = ell.y * sin(lat) * sin(lon), z = ell.z * cos(lat), //coordinate point on ellipsoid,
+          //distance to ellipsoid 
+    dz = k0 * (k0 - 1.0) / k1; //https://iquilezles.org/articles/distfunctions/
+    vec3 a = vec3(x1, y1, z1);
+    vec3 b = a + normalize(a) * h;
+    vec3 p2 = vec3(x, y, z);
+    p2 += dz * normalize(p2 / ell / ell);
+    float dp = sdCapsule(p2, a, b, r) * 0.5;
+
+    return min(dz, dp);
+
+}
+
+float rand(float t) {
+    return fract(sin(t * 213456.12234));
+}
+
+float heirw(vec3 p, float h, float r, float r0, float f) {
+
+    float fi = rand(f) * PI;
+    h = h * (1.0 + 0.05 * cos(iTime * 4. + fi));
+    float z = clamp(p.z, 0., h), // radius pimple 
+    x = sin(z * PI * 2.0 + iTime * 4. + fi) * h * 0.3 * z * (h - z) / h / h, y = sin(z * PI * 2.0 - iTime * 4. + fi) * h * 0.3 * z * (h - z) / h / h;
+
+    vec3 p2 = vec3(x, y, z);
+    return length(p - p2) * 0.5 - r * (h - z) / h - r0;
+}
+
+float bbody(vec3 p) {
+
+    float h = 1.1, //height pimple
+    r = 0.3, n = 20., m = 10., z = clamp(p.z, r, h + r);
+    vec3 p2 = vec3(0., 0., z);
+    float dz = length(p - p2) - r;
+
+    float dlon = TAU / n, dlat = h / m, l = length(p.xy), lon = mod(atan(p.y, p.x), TAU), lat = p.z - r, //longitude and latitude
+    i = floor(lon / dlon), j = clamp(floor(lat / dlat), 0., m), lon1 = i * dlon + 0.5 * dlon, lat1 = j * dlat + 0.5 * dlat, //longitude and latitude nearest pimple
+    dx = (lon - lon1) * r, dy = lat - lat1, num = (i + 1.) * m + (j + 1.), dp = heirw(vec3(dx, dy, dz), 0.4, 0.005, 0.001, num), x1 = lon / TAU, y1 = clamp(p.z, 0., h + 2. * r) / (h + 2. * r);
+
+    //texture
+
+    float disp = dot(texture(iChannel1, vec2(x1, y1)).rgb, vec3(0.3, 0.59, 0.11));
+    //disp = pow(disp, 0.01);
+    disp *= r * 0.1;
+    dz -= disp;
+
+    return min(dp, dz);
+
+}
+
+float sdBak(vec3 p) {
+    float d = dist_infin; 
+    if(p.z < 0.) {
+        p.z *= -1.;
+        d = heirw(p, 1.8, 0.03, 0.003, 0.);
+    }
+    else
+    {
+        d = bbody(p);
+    }
+    return d;
 }
 
 float map(in vec3 pos) {
-    
-    
+
     //return sdCosN(pos, 1.0, .3);
     //return sdf_fun(pos);
     //return dCyl(pos, 0.2, .5);
-    return heir(pos);
+    //return heir(pos);
     //return ellipse(pos);
+    //return heirw(pos);
+    return sdBak(pos);
 
-
-    
 }
 
 // https://iquilezles.org/articles/normalsSDF
