@@ -192,9 +192,7 @@ float rand(float t) {
     return fract(sin(t * 213456.12234));
 }
 
-float heirw(vec3 p, float h, float r, float r0, float f) {
-
-    float fi = rand(f) * PI;
+float heirw(vec3 p, float h, float r, float r0, float fi) {
     h = h * (1.0 + 0.05 * cos(iTime * 4. + fi));
     float z = clamp(p.z, 0., h), // radius pimple 
     x = sin(z * PI * 2.0 + iTime * 4. + fi) * h * 0.3 * z * (h - z) / h / h, y = sin(z * PI * 2.0 - iTime * 4. + fi) * h * 0.3 * z * (h - z) / h / h;
@@ -206,16 +204,28 @@ float heirw(vec3 p, float h, float r, float r0, float f) {
 float bbody(vec3 p) {
 
     float h = 1.1, //height pimple
-    r = 0.3, n = 20., m = 10., z = clamp(p.z, r, h + r);
+    r = 0.3, n = 15., m = 10., z = clamp(p.z, r, h + r);
     vec3 p2 = vec3(0., 0., z);
     float dz = length(p - p2) - r;
 
-    float dlon = TAU / n, dlat = h / m, l = length(p.xy), lon = mod(atan(p.y, p.x), TAU), lat = p.z - r, //longitude and latitude
-    i = floor(lon / dlon), j = clamp(floor(lat / dlat), 0., m), lon1 = i * dlon + 0.5 * dlon, lat1 = j * dlat + 0.5 * dlat, //longitude and latitude nearest pimple
-    dx = (lon - lon1) * r, dy = lat - lat1, num = (i + 1.) * m + (j + 1.), dp = heirw(vec3(dx, dy, dz), 0.4, 0.005, 0.001, num), x1 = lon / TAU, y1 = clamp(p.z, 0., h + 2. * r) / (h + 2. * r);
+    float dlon = TAU / n, dlat = h / m, l = length(p.xy), 
+    lon = mod(atan(p.y, p.x), TAU), 
+    lat = p.z - r, //longitude and latitude
+    i = floor(lon / dlon), 
+    j = clamp(floor(lat / dlat), 0., m), 
+    lon1 = i * dlon + 0.5 * dlon, 
+    lat1 = j * dlat + 0.5 * dlat, //longitude and latitude nearest pimple
+    dx = (lon - lon1) * r, 
+    dy = lat - lat1, 
+    num = (i + 1.) * m + (j + 1.), 
+    fi = rand(num) * PI,
+    dp = dz,
+    x1 = lon / TAU, 
+    y1 = clamp(p.z, 0., h + 2. * r) / (h + 2. * r);
 
+    
+    dp = heirw(vec3(dx, dy, dz), 0.4, 0.005, 0.001, fi);
     //texture
-
     float disp = dot(texture(iChannel1, vec2(x1, y1)).rgb, vec3(0.3, 0.59, 0.11));
     //disp = pow(disp, 0.01);
     disp *= r * 0.1;
@@ -226,13 +236,11 @@ float bbody(vec3 p) {
 }
 
 float sdBak(vec3 p) {
-    float d = dist_infin; 
+    float d = dist_infin;
     if(p.z < 0.) {
         p.z *= -1.;
         d = heirw(p, 1.8, 0.03, 0.003, 0.);
-    }
-    else
-    {
+    } else {
         d = bbody(p);
     }
     return d;

@@ -147,3 +147,9 @@ def param():
     t = Poli()
     t.p[0] = [(1, "t")]
     return x, y, z, t
+
+
+a = [96, 192, 224]
+for i, e in enumerate(a):
+    a[i] = e/255
+print (a)    
