@@ -138,7 +138,7 @@ HIT giper3D(vec3 ro, vec3 rd) {
 }
 
 vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
-    vec3 f = normalize(l - p), r = normalize(cross(vec3(0, 1, 0), f)), u = cross(f, r), c = f * z, i = c + uv.x * r + uv.y * u;
+    vec3 f = normalize(l - p), r = normalize(vec3(f.z,0,-f.x)), u = cross(f, r), c = f * z, i = c + uv.x * r + uv.y * u;
     return normalize(i);
 }
 
@@ -168,15 +168,15 @@ vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
     vec3 light2 = normalize(vec3(0.0, -1.0, 2.5)); //light
-    vec2 m = vec2(0.0, 0.0);
+    vec2 mo = vec2(0.0, 0.0);
     //if  (iMouse.z > 0.0)
     {
-        m = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
+        mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
     }
     vec3 ro = vec3(0.0, 0.0, 2.5); // camera
     //camera rotation
-    ro.yz *= rot(m.y * PI);
-    ro.xz *= rot(-m.x * TAU);
+    ro.yz *= rot(mo.y * PI);
+    ro.xz *= rot(-mo.x * TAU);
     
     const float fl = 1.5; // focal length
     float dist = dist_infin;
@@ -189,6 +189,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             vec2 o = vec2(float(m), float(n)) / float(AA) - 0.5;
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
             vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
+            
+            
             vec3 col = bg * bg; // background  
             HIT giper = giper3D(ro, rd);
             if(giper.dist < dist) {

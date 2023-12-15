@@ -514,7 +514,7 @@ HIT giper3D(vec3 ro, vec3 rd) {
 }
 
 vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
-    vec3 f = normalize(l - p), r = normalize(cross(vec3(0, 1, 0), f)), u = cross(f, r), c = f * z, i = c + uv.x * r + uv.y * u;
+    vec3 f = normalize(l - p), r = normalize(vec3(f.z,0,-f.x)), u = cross(f, r), c = f * z, i = c + uv.x * r + uv.y * u;
     return normalize(i);
 }
 
@@ -525,7 +525,7 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #define AA 2
 #endif
 */
-#define AA 2
+#define AA 1
 
 vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor)
 {
