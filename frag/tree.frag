@@ -22,77 +22,83 @@ uniform sampler2D u_tex1;
 #define TAU 6.28318530718
 #define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
 
-const float dist_infin = 10.0;
+const float dist_infin = 20.0;
 #define nn 128
 const float eps = 0.001;
 
 vec3 sdfColor;
 vec3 resColor;
-vec3 col1 = vec3(0.3764, 0.8196, 0.3725);
-vec3 col2 = vec3(0.8117, 0.1764, 0.8078);
+vec3 col1 = vec3(0.13725490196078433, 0.4823529411764706, 0.28627450980392155);
+vec3 col2 = vec3(0.3607843137254902, 0.16470588235294117, 0.027450980392156862);
 
-//https://iquilezles.org/articles/smin/
-// polynomial smooth min 1 (k=0.1)
-float smin(float a, float b, float k) {
-    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
-    return mix(b, a, h) - k * h * (1.0 - h);
+float branch2(vec2 p, float l) {
+    p *= rot(PI / 3.);
+    float x = clamp(p.x, 0., l);
+    float d = length(p - vec2(x, 0.));
+    return d;
+
 }
 
-float rand(float t) {
-    return fract(sin(t * 213.12234));
-}
+float branch1(vec2 p, float l) {
+    p *= rot(PI / 3.);
+    float n = 2.;
+    float l2 = 0.3;
+    float x = clamp(p.x, 0., l);
+    float d = length(p - vec2(x, 0.));
+    
+    float dlat = l / n, k = x / dlat, lat = clamp(floor(k) * dlat + dlat / 2.0, dlat / 2., l - dlat / 2.), dz = p.y;
+    float lt = clamp(lat + sign(x - lat) * dlat, dlat / 2., l - dlat / 2.), lt1 = min(lat, lt), lt2 = max(lat, lt);
+    float d2 = dist_infin;
+    
+    for(float i = 0.; i < 1.; i++) {
+        float llt = clamp(lt1 - dlat * i, dlat / 2., l - dlat / 2.);
+        d2 = branch2(vec2(p.x - llt, dz), l2);
+        d = min(d, d2);
+        d2 = branch2(vec2(p.x - llt, -dz), l2);
+        d = min(d, d2);
 
-float heirw(vec3 p, float h, float r, float r0, float fi) {
-    h = h * (1.0 + 0.05 * cos(iTime * 4. + fi));
-    float z = clamp(p.z, 0., h), // radius pimple 
-    x = sin(z * PI * 2.0 + iTime * 4. + fi) * h * 0.3 * z * (h - z) / h / h, y = sin(z * PI * 2.0 - iTime * 4. + fi) * h * 0.3 * z * (h - z) / h / h;
-
-    vec3 p2 = vec3(x, y, z);
-    //Color
-    sdfColor = mix(col1, col2, pow(vec3(p.z / h), vec3(3.)));
-    return length(p - p2) * 0.5 - r * (h - z) / h - r0;
-}
-
-float bbody(vec3 p) {
-
-    float h = 1.1, //height pimple
-    r = 0.3, n = 15., m = 6., z = clamp(p.z, r, h + r);
-    vec3 p2 = vec3(0., 0., z);
-    float dz = length(p - p2) - r;
-
-    float dlon = TAU / n, dlat = h / m, l = length(p.xy), lon = mod(atan(p.y, p.x), TAU), lat = p.z - r, //longitude and latitude
-    i = floor(lon / dlon), j = clamp(floor(lat / dlat), 0., m), dp = dz, x1 = lon / TAU, y1 = clamp(p.z, 0., h + 2. * r) / (h + 2. * r);
-
-    float lon1 = i * dlon + 0.5 * dlon, dx = (lon - lon1) * r, lat1 = j * dlat + 0.5 * dlat, //longitude and latitude nearest pimple
-    dy = lat - lat1, num = (i + 1.) * m + (j + 1.), fi = rand(num) * PI, d = heirw(vec3(dx, dy, dz), 0.5, 0.01, 0.001, fi);
-    if(d < dp) {
-        resColor = sdfColor;
-        dp = d;
+        llt = clamp(lt2 + dlat * i, dlat / 2., l - dlat / 2.);
+        d2 = branch2(vec2(p.x - llt, dz), l2);
+        d = min(d, d2);
+        d2 = branch2(vec2(p.x - llt, -dz), l2);
+        d = min(d, d2);
     }
+    return d;
+}
 
-    //texture
-    vec3 cl = texture(iChannel0, vec2(x1, y1)).rgb;
-    float disp = dot(cl, vec3(0.3, 0.59, 0.11));
-    disp *= r * 0.1;
-    dz -= disp;
-    if(dz < dp)
-        resColor = cl;
+float branch0(vec2 p, float l) {
 
-    return smin(dp, dz, 0.01);
+    float n = 3.;
+    float l2 = 1.5;
+    float x = clamp(p.x, 0., l);
+    float d = length(p - vec2(x, 0.));
+   
 
+    float dlat = l / n, k = x / dlat, lat = clamp(floor(k) * dlat + dlat / 2.0, dlat / 2., l - dlat / 2.), dz = p.y;
+    float lt = clamp(lat + sign(x - lat) * dlat, dlat / 2., l - dlat / 2.), lt1 = min(lat, lt), lt2 = max(lat, lt);
+    float d2 = dist_infin;
+    
+    for(float i = 0.; i < 2.; i++) {
+        float llt = clamp(lt1 - dlat * i, dlat / 2., l - dlat / 2.);
+        d2 = branch1(vec2(p.x - llt, dz), l2);
+        d = min(d, d2);
+        d2 = branch1(vec2(p.x - llt, -dz), l2);
+        d = min(d, d2);
+
+        llt = clamp(lt2 + dlat * i, dlat / 2., l - dlat / 2.);
+        d2 = branch1(vec2(p.x - llt, dz), l2);
+        d = min(d, d2);
+        d2 = branch1(vec2(p.x - llt, -dz), l2);
+        d = min(d, d2);
+    }
+    return d;
 }
 
 float map(vec3 p) {
-    p.xz *=rot(PI/2.); //rotate object
-    float d = dist_infin;
-    if(p.z < 0.) {
-        p.z *= -1.;
-        d = heirw(p, 1.8, 0.03, 0.003, 0.);
-        resColor = sdfColor;
-    } else {
-        d = bbody(p);
-    }
-    return d;
+    float d = branch0(p.xy, 3.);
+    resColor = col2;
+    d = length(vec2(p.z, d));
+    return d - 0.03;
 }
 
 // https://iquilezles.org/articles/normalsSDF
@@ -140,7 +146,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     {
         mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
     }
-    vec3 ro = vec3(0.0, 0.0, 2.5); // camera
+    vec3 ro = vec3(0.0, 0.0, 3.5); // camera
     //camera rotation
     ro.yz *= rot(mo.y * PI);
     ro.xz *= rot(-mo.x * TAU);
@@ -148,7 +154,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     const float fl = 1.5; // focal length
     float dist = dist_infin;
 
-    vec3 b1 = vec3(0.0509, 0.2980, 0.4705), b2 = vec3(0.3764, 0.7529, 0.8784), bg = mix(b1, b2, vec3((1.0 - abs(fragCoord.x - iResolution.x / 2.) / iResolution.y * 2.) * fragCoord.y / iResolution.x));   
+    vec3 b1 = vec3(0.6235294117647059, 0.8, 0.9803921568627451), b2 = vec3(0.49019607843137253, 0.6980392156862745, 0.9568627450980393);
+    vec3 bg = mix(b1, b2, vec3(fragCoord.y / iResolution.y));   
     //antialiasing
     vec3 tot = vec3(0.0);
     for(int m = 0; m < AA; m++) for(int n = 0; n < AA; n++) {

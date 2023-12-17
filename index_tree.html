@@ -11,12 +11,20 @@
     body {
       margin: 0;
       padding: 0;
+      overflow: hidden;
     }
   
     
   </style>
   
 <body>
-    <canvas class="glslCanvas" data-fragment-url="/frag/bolt.frag" data-textures = "/img/spree_bank.webp" width="700" height="600"></canvas>
+    <canvas id="glslCanvas" data-fragment-url="/frag/tree_v1.frag" data-textures = "/img/met2.jpg"></canvas>
 </body>
+<script>
+  //https://www.shadertoy.com/view/4sBGDy  
+  var canvas = document.getElementById("glslCanvas");
+  var sandbox = new GlslCanvas(canvas);
+  canvas.style.width = '100%';
+  canvas.style.height = '100vh';
+</script>
 </html>

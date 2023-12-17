@@ -149,7 +149,7 @@ def param():
     return x, y, z, t
 
 
-a = [184., 216., 135.]
+a = [255, 74, 45]
 for i, e in enumerate(a):
     a[i] = e/255
 print (a)    
