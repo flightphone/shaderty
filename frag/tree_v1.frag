@@ -22,7 +22,7 @@ uniform sampler2D u_tex1;
 #define TAU 6.28318530718
 #define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
 
-const float dist_infin = 10.0;
+const float dist_infin = 5.0;
 #define nn 128
 const float eps = 0.001;
 
@@ -49,14 +49,14 @@ float getlon(float lon, float n, float shift) {
 }
 
 float branch(vec3 p, float l, float r, float ls, float lss, float fi, float n, float th, int prec) {
-    float z = clamp(p.z, 0., l), r2 = r - r * z / l*0.6;
-    float d = length(p - vec3(0, 0., z)) - r2;
+    float z = clamp(p.z, 0., l);// r2 = r - r * z / l*0.6;
+    float d = length(p - vec3(0, 0., z)) - r;
     sdfColor = col2;
     
     float lon = mod(atan(p.y, p.x), TAU), dlon = TAU / n;
     float j = floor(z / lss);
     float h1 = j * lss, h2 = h1 + lss, shift1 = mod(j, 2.) * dlon / 2., shift2 = mod((j + 1.), 2.) * dlon / 2.;
-    float h3 = h1 - lss, h4 = h2 + lss, shift3 = mod(j - 1., 2.) * dlon / 2., shift4 = mod((j + 2.), 2.) * dlon / 2.;
+    float h3 = h1 - lss, h4 = h1 - 2.*lss, shift3 = mod(j - 1., 2.) * dlon / 2., shift4 = mod((j - 2.), 2.) * dlon / 2.;
 
     float lon1 = getlon(lon, n, shift1), lon2 = getlon(lon, n, shift2);
     float lon3 = getlon(lon, n, shift3), lon4 = getlon(lon, n, shift4);
@@ -68,6 +68,9 @@ float branch(vec3 p, float l, float r, float ls, float lss, float fi, float n, f
         d = d2;
         sdfColor = col1;
     }
+    
+    //need for fi > PI/6.
+    if (prec == -1)
     if(h2 < l) {
         d2 = spine(p - vec3(r * cos(lon2), r * sin(lon2), h2), ls, lon2, fi, th);
         //d2 = laspine(p, r, h2, lon2, ls, fi, th, l);
@@ -77,77 +80,48 @@ float branch(vec3 p, float l, float r, float ls, float lss, float fi, float n, f
         }
     }
     
-    if(prec == 1) {
-        if(h3 >= 0.) {
+    if (prec >= 1)
+    if(h3 >= 0.) {
             d2 = spine(p - vec3(r * cos(lon3), r * sin(lon3), h3), ls, lon3, fi, th);
             //d2 = laspine(p, r, h3, lon3, ls, fi, th, l);
             if(d2 < d) {
                 d = d2;
                 sdfColor = col1;
             }
-        }
-        if(h4 < l) {
+    }
+    
+    if (prec >= 2)
+    if(h4 >= 0.) {
             d2 = spine(p - vec3(r * cos(lon4), r * sin(lon4), h4), ls, lon4, fi, th);
-            //d2 = laspine(p, r, h4, lon4, ls, fi, th, l);
             if(d2 < d) {
                 d = d2;
                 sdfColor = col1;
             }
-        }
     }
+        
+    
     return d;
 }
 
-//converts a vector on a sphere to longitude and latitude
-vec2 lonlat (vec3 p)
-{
-    float lon = mod(atan(p.y, p.x), TAU)/TAU;//
-    float lat = mod(atan(length(p.xy), p.z), TAU)/PI;
-    return vec2(lon, lat);
-}
-
-vec3 point(vec2 ll, float r)
-{
-    float f1 = ll.x * TAU;
-    float f2 = ll.y * PI;
-    float z = r*cos(f2);
-    float d = abs(r*sin(f2));
-    float x = d*cos(f1);
-    float y = d*sin(f1);
-    return vec3(x, y, z);
-}
-
-float sdDiscoBall(vec3 pos, float r)
-{
-    vec2 ll = lonlat(pos);
-    float n = 15.;
-    float n2 = 30.;
-    ll.x = floor(ll.x*n2);
-    ll.y = floor(ll.y*n);
-    vec3 a = point(vec2(ll.x/n2, ll.y/n), r);
-    vec3 b = point(vec2(ll.x/n2, (ll.y+1.)/n), r);
-    vec3 c = point(vec2((ll.x + 1.)/n2, (ll.y+1.)/n), r);
-    float d = dot(normalize(cross(b-a, c-a)), (pos - a));
-    return abs(d);
-}
 
 float iTT = 0.;
 
 float map(vec3 p) {
-    float l = 4.;
+    /*
+    p = p.xzy;
+    p += vec3(.0, .0, 1.3);
+    float td = branch(p, 2., 0.1, 1., 0.3, PI/6., 20., 0.3, 2);
+    resColor = sdfColor;
+    return td;
+    */
 
-    
-    
+    float l = 4.;
     p.xy *= rot(PI/3. + iTT);
     p.yz *= rot(PI/3.+ iTT); 
-    
-    float f = PI /4. * p.z / l;
-    p.yz *= rot(f);
-    
-    
+    //float f = PI /4. * p.z / l;
+    //p.yz *= rot(f);
     p += vec3(0.0, 0.0, 2.);
-   
-    float d = sdDiscoBall(p - vec3(.5, .5, 2.), 0.5);//length(p - vec3(.5, .5, 2.)) - 0.5;
+    float d = (length(p - vec3(.5, .5, 2.)) - 0.5)*0.8;
     vec3 col = vec3(1.0, 0.2901960784313726, 0.17647058823529413);
 
     float d2 = dist_infin;
@@ -181,9 +155,18 @@ float map(vec3 p) {
         col = sdfColor;
         d = d2;
     }
+    /*
+    p2 = p;
+    p2.xz *= rot(-PI *0.7);
+    d2 = branch(p2, l / 2., 0.025, 0.5, 0.3, PI / 6., 20., 1., 1);
+    if(d2 < d) {
+        col = sdfColor;
+        d = d2;
+    }
+    */
     sdfColor = col;
     resColor = sdfColor;
-    return d * 0.8;
+    return d;
 }
 
 // https://iquilezles.org/articles/normalsSDF
@@ -233,7 +216,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
         iTT = 0.;
     }
-    vec3 ro = vec3(0.0, 0.0, 3.5); // camera
+    vec3 ro = vec3(0.0, 0.0, 2.5); // camera
     //camera rotation
     ro.yz *= rot(mo.y * PI);
     ro.xz *= rot(-mo.x * TAU);
