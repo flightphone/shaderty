@@ -28,12 +28,70 @@ const float eps = 0.001;
 
 vec3 sdfColor;
 vec3 resColor;
-
-vec3 col1 = vec3(0., 0.878, 0.568);
+//vec3 col1 = vec3(0.5019607843137255, 0.6705882352941176, 0.34509803921568627);
+vec3 col1 = vec3(0.3137254901960784, 0.7843137254901961, 0.47058823529411764);
 vec3 col2 = vec3(0.7686274509803922, 0.8235294117647058, 0.8745098039215686);
-vec3 col3 = vec3(1., 0.8431, 0.);
-float sdfReflect = 0.5;
 float resReflect = 0.5;
+
+float smin(float a, float b, float k) {
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
+}
+float sdCosNp(vec2 p, float a, float n) {
+    float df = PI / n / 2.;
+    float fi = atan(p.y, p.x);
+    float L = length(p.xy);
+
+    float d = dist_infin;
+    float r = a * cos(n * fi);
+    if(abs(fi) > df)
+        r = -0.01;
+    d = min(abs(L - r), d);
+    if(L <= a) {
+        float f = acos(L / a) / n;
+        d = min(2. * abs(sin((fi - f) / 2.0)) * L, d);
+        d = min(2. * abs(sin((fi + f) / 2.0)) * L, d);
+    }
+
+    return d;
+}
+
+float exmp(vec3 p) {
+    /*
+    1.:0.6
+    1.5:0.5
+    2:0.5
+    2.5:0.4
+    3:0.3
+    3.5:0.3
+    4.:0.25
+    4.5:0.25
+    5.:
+    */
+
+    float d = sdCosNp(p.xy, 1.2, 2.);
+    d = length(vec2(d, p.z)) * 0.5 - 0.01;
+
+    float d2 = sdCosNp(p.xy, 1.2, 1.5);
+    d2 = length(vec2(d2, p.z)) * 0.5 - 0.01;
+    d = min(d, d2);
+
+    d2 = sdCosNp(p.xy, 1.2, 1.2);
+    d2 = length(vec2(d2, p.z)) * 0.5 - 0.01;
+    d = min(d, d2);
+
+    d2 = sdCosNp(p.xy, 1.2, 2.5);
+    d2 = length(vec2(d2, p.z)) * 0.4 - 0.01;
+    d = min(d, d2);
+
+    d2 = sdCosNp(p.xy, 1.2, 3.5);
+    d2 = length(vec2(d2, p.z)) * 0.3 - 0.01;
+    d = min(d, d2);
+
+    sdfColor = col1;
+    return d;
+
+}
 
 vec3 csky(vec3 p) {
     float n = 5., m = 5., dlat = PI / n, dlon = TAU / m;
@@ -64,21 +122,15 @@ float heigthBranch(vec2 p) {
         r = 0.;
     float d = r - L;
     float h = smoothstep(0., 0.3, d * L * L);
-    if (h > 0.)
-    {
-        
-        sdfColor = col1;
-        float pst = smoothstep(0.2, 0., abs(L-0.6));
-        sdfColor = mix(col1, col2, pst);
-        sdfReflect = mix(0.2, 0., pst);
-    }
     return h;
 }
 
 float getlon(float lon, float n, float shift) {
+    //lon = mod(lon - shift, TAU);
     lon = lon - shift;
     float dlon = TAU / n, lon1 = floor(lon / dlon) * dlon;
     if((lon - lon1) >= dlon / 2.)
+        //lon1 = mod(lon1 + dlon, TAU);
         lon1 +=  dlon;
     return lon1 + shift; ////mod(lon1 + shift, TAU);
 }
@@ -88,18 +140,20 @@ float sdTree(vec3 p, float l, float r) {
     float d = sdSolidAngle(p, vec2(sin(mfi), cos(mfi)), l) - r;
     if(p.y < 0. || p.y > l * cos(mfi)) {
         sdfColor = col2;
-        sdfReflect = 0.;
+        resReflect = 0.;
         return d;
     }
     sdfColor = col1;
-    sdfReflect = 0.1;
+    resReflect = 0.1;
 
-    float n = 8., m = 5., nc = 6., dnc = l/nc;
+    float n = 8., m = 5.;
     float lss = l/2./m,  ls = 2.*lss;
     float z = clamp(p.y, 0., l);
     float lon = mod(atan(p.z, p.x), TAU), dlon = TAU / n;
 
-    
+    //float pst = smoothstep(0.5, 0., lon); 
+    //sdfColor = mix(sdfColor, col2, pst);
+
     float j = floor(z / lss);
     float h1 = j * lss, shift1 = mod(j, 2.) * dlon / 2.;//,h2 = h1 + lss, shift2 = mod((j + 1.), 2.) * dlon / 2.;
     float h3 = h1 - lss, shift3 = mod(j - 1., 2.) * dlon / 2.;//h4 = h1 - 2.*lss, shift4 = mod((j - 2.), 2.) * dlon / 2.;
@@ -112,35 +166,28 @@ float sdTree(vec3 p, float l, float r) {
         h = max(heigthBranch(vec2((p.y - h1)/ls, (lon-lon1)/dlon*0.5))*l, h);
     if (h3 > 0. && h3 + ls < l)
         h = max(heigthBranch(vec2((p.y - h3)/ls, (lon-lon3)/dlon*0.5))*l, h);
-    
-
-    //shpere
-    float hp = 6.*lss, lonsp = getlon(lon, n, 0.), dx = hp*tan(mfi)*(lon - lonsp), dy = (z - hp)/cos(mfi), dr = l/15.;
-    float ra = length(vec2(dx, dy)/dr);
-    if (ra < 0.4)
-    {
-        h = max(sqrt(0.16-ra*ra), h);
-        sdfColor = vec3(0.698,0.098,0.176);
-        sdfReflect = 0.4;
-
-    }
-    
-    float pst = smoothstep(0.1, 0., fract(z/dnc));
-    sdfColor = mix(sdfColor, col3, pst);
-    sdfReflect = mix(sdfReflect, 0.8, pst);
-    
+    /*
+    float x = (p.y - l / 2.) / l * 3.;
+    float y = (f - PI / 2.) / dlon * 0.5;
+    float h = heigthBranch(vec2(x, y)) * l * 0.1;
+    */
     return d * 0.3 - h*0.06*sqrt(z/l);
 
 }
 
 float map(vec3 p) {
+
+    //float d = exmp(p);
+    //float d = sp(p);
+    //p.xy *= rot(iTime);
+    //p.xz *= rot(iTime);
+    //float d = sdConePine(p, 2.8);
+
     float l = 2.3;
     p.xy *= rot(PI);
     p += vec3(0., l / 2., 0.);
-    p.xz *= rot(iTime/2.);
     float d = sdTree(p, l, 0.05);
     resColor = sdfColor;
-    resReflect = sdfReflect;
     return d;
 }
 
@@ -182,8 +229,8 @@ vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
 }
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec3 light = normalize(vec3(1.0, .0, -2.5)); //light
-    vec3 light2 = normalize(vec3(-1.0, -.0, 2.5)); //light
+    vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
+    vec3 light2 = normalize(vec3(0.0, -1.0, 2.5)); //light
     vec2 mo = vec2(0.0, 0.0);
     //if  (iMouse.z > 0.0)
     {
