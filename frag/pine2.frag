@@ -64,11 +64,10 @@ float heigthBranch(vec2 p) {
         r = 0.;
     float d = r - L;
     float h = smoothstep(0., 0.3, d * L * L);
-    if (h > 0.)
-    {
-        
+    if(h > 0.) {
+
         sdfColor = col1;
-        float pst = smoothstep(0.2, 0., abs(L-0.6));
+        float pst = smoothstep(0.2, 0., abs(L - 0.6));
         sdfColor = mix(col1, col2, pst);
         sdfReflect = mix(0.2, 0., pst);
     }
@@ -79,7 +78,7 @@ float getlon(float lon, float n, float shift) {
     lon = lon - shift;
     float dlon = TAU / n, lon1 = floor(lon / dlon) * dlon;
     if((lon - lon1) >= dlon / 2.)
-        lon1 +=  dlon;
+        lon1 += dlon;
     return lon1 + shift; ////mod(lon1 + shift, TAU);
 }
 
@@ -94,42 +93,51 @@ float sdTree(vec3 p, float l, float r) {
     sdfColor = col1;
     sdfReflect = 0.1;
 
-    float n = 8., m = 5., nc = 6., dnc = l/nc;
-    float lss = l/2./m,  ls = 2.*lss;
+    float n = 8., m = 5., nc = 6., dnc = l / nc;
+    float lss = l / 2. / m, ls = 2. * lss;
     float z = clamp(p.y, 0., l);
     float lon = mod(atan(p.z, p.x), TAU), dlon = TAU / n;
 
-    
     float j = floor(z / lss);
     float h1 = j * lss, shift1 = mod(j, 2.) * dlon / 2.;//,h2 = h1 + lss, shift2 = mod((j + 1.), 2.) * dlon / 2.;
     float h3 = h1 - lss, shift3 = mod(j - 1., 2.) * dlon / 2.;//h4 = h1 - 2.*lss, shift4 = mod((j - 2.), 2.) * dlon / 2.;
 
     float lon1 = getlon(lon, n, shift1);//, lon2 = getlon(lon, n, shift2);
     float lon3 = getlon(lon, n, shift3);//, lon4 = getlon(lon, n, shift4);
-    
+
     float h = 0.;
-    if (j < n && h1 > 0.)
-        h = max(heigthBranch(vec2((p.y - h1)/ls, (lon-lon1)/dlon*0.5))*l, h);
-    if (h3 > 0. && h3 + ls < l)
-        h = max(heigthBranch(vec2((p.y - h3)/ls, (lon-lon3)/dlon*0.5))*l, h);
-    
+    if(j < n && h1 > 0.)
+        h = max(heigthBranch(vec2((p.y - h1) / ls, (lon - lon1) / dlon * 0.5)) * l, h);
+    if(h3 > 0. && h3 + ls < l)
+        h = max(heigthBranch(vec2((p.y - h3) / ls, (lon - lon3) / dlon * 0.5)) * l, h);
 
     //shpere
-    float hp = 6.*lss, lonsp = getlon(lon, n, 0.), dx = hp*tan(mfi)*(lon - lonsp), dy = (z - hp)/cos(mfi), dr = l/15.;
-    float ra = length(vec2(dx, dy)/dr);
-    if (ra < 0.4)
-    {
-        h = max(sqrt(0.16-ra*ra), h);
-        sdfColor = vec3(0.698,0.098,0.176);
-        sdfReflect = 0.4;
 
+    float tj = j;
+    float h2 = h1 + lss, shift2 = mod((j + 1.), 2.) * dlon / 2.;
+    float lon2 = getlon(lon, n, shift2);
+    float hp = h1, lonsp = lon1;
+    if(h2 - z < z - h1) {
+        hp = h2;
+        lonsp = lon2;
+        tj = j + 1.;
     }
-    
-    float pst = smoothstep(0.1, 0., fract(z/dnc));
+    if(tj > 2.) {
+        float dx = hp * tan(mfi) * (lon - lonsp), dy = (z - hp) / cos(mfi), dr = l / 15.;
+        float ra = length(vec2(dx, dy) / dr);
+        if(ra < 0.4) {
+            h = max(sqrt(0.16 - ra * ra), h);
+            sdfColor = vec3(0.698, 0.098, 0.176);
+            sdfReflect = 0.4;
+
+        }
+    }
+
+    float pst = smoothstep(0.1, 0., fract(z / dnc));
     sdfColor = mix(sdfColor, col3, pst);
     sdfReflect = mix(sdfReflect, 0.8, pst);
-    
-    return d * 0.3 - h*0.06*sqrt(z/l);
+
+    return d * 0.3 - h * 0.06 * sqrt(z / l);
 
 }
 
@@ -137,7 +145,7 @@ float map(vec3 p) {
     float l = 2.3;
     p.xy *= rot(PI);
     p += vec3(0., l / 2., 0.);
-    p.xz *= rot(iTime/2.);
+    p.xz *= rot(iTime / 2.);
     float d = sdTree(p, l, 0.05);
     resColor = sdfColor;
     resReflect = sdfReflect;
