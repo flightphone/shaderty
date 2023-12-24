@@ -28,10 +28,11 @@ const float eps = 0.001;
 
 vec3 sdfColor;
 vec3 resColor;
-vec3 col1 = vec3(0.5019607843137255, 0.6705882352941176, 0.34509803921568627);
-//vec3 col1 = vec3(1.);
+//vec3 col1 = vec3(0.5019607843137255, 0.6705882352941176, 0.34509803921568627);
+vec3 col1 = vec3(.2);
 //vec3 col1 = vec3(0.3137254901960784, 0.7843137254901961, 0.47058823529411764);
-vec3 col2 = vec3(0.7686274509803922, 0.8235294117647058, 0.8745098039215686);
+//vec3 col2 = vec3(0.7686274509803922, 0.8235294117647058, 0.8745098039215686);
+vec3 col2 = vec3(0.4745098039215686, 0.26666666666666666, 0.23137254901960785);
 vec3 col3 = vec3(1., 0.8431, 0.);
 float resReflect = 0.5;
 float sdfReflect;
@@ -198,24 +199,26 @@ float exmp(vec3 p) {
 float larme2(vec2 p, float a)
 {
     float k = 0.3;
+    p.x += a*(k - 0.95)/2.0;
+    float zoom = 1.;
     float x = clamp(p.x, -a*0.95, a*k);
     float f = acos(x/a);
-    float y = a*sin(f)*pow(sin(f/2.), 2.)*1.5;
+    float y = a*sin(f)*pow(sin(f/2.), 2.)*zoom;
     float d = length(p - vec2(x, y));
     //d = min(length(p - vec2(x, -y)), d);
     if (abs(p.y) < abs(y))
     {
         sdfReflect = 0.;
-        sdfColor = col3;
+        sdfColor = col2;
     }
     else
     {
-        sdfReflect = 0.3;
+        sdfReflect = 0.1;
         sdfColor = col1;
     }
     
     f = acos(k);
-    y = a*sin(f)*pow(sin(f/2.), 2.)*1.5;
+    y = a*sin(f)*pow(sin(f/2.), 2.)*zoom;
     float y2 = clamp(p.y, -y, y);
     float d2 = length(p - vec2(k*a, y2));
     if (d2 < d)
@@ -223,13 +226,13 @@ float larme2(vec2 p, float a)
         d = d2;
         if (p.x > x)
         {
-            sdfReflect = 0.3;
+            sdfReflect = 0.1;
             sdfColor = col1;
         }
         else
         {
             sdfReflect = 0.;
-            sdfColor = col3;
+            sdfColor = col2;
         }
     }
     
@@ -278,7 +281,7 @@ float ciss(vec3 p, float a)
 
 float map(vec3 p) {
 
-    float d = larme(p, 2.);//knot3(p);//kiss(p, 2.);//ciss(p, 2.);//
+    float d = larme(p, 3.5);//knot3(p);//kiss(p, 2.);//ciss(p, 2.);//
     resColor = sdfColor;
     resReflect = sdfReflect;
     return d;
@@ -291,7 +294,9 @@ vec3 csky(vec3 p) {
     float fo = fract(lon / dlon), fa = fract(lat / dlat);
 
     float pst = fo * fa * (1. - fo) * (1. - fa);
-    pst = smoothstep(0.0, 0.0625, pst);
+    pst=pow(pst, 2.);
+
+    pst = smoothstep(0.0, pow(0.0625, 2.), pst);
     pst = clamp(pst, 0.1, 1.0);
     return vec3(pst);
 }
@@ -388,8 +393,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             //==========================raymatch=============================
             tot += col;
         }
-    //tot = tot / float(AA);
-    tot = pow(tot, vec3(0.7)) / float(AA);
+    tot = tot / float(AA);
+    //tot = pow(tot, vec3(0.7)) / float(AA);
     //antialiasing
     fragColor = vec4(tot, 1.0);
 }
