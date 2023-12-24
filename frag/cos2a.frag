@@ -34,6 +34,7 @@ vec3 col1 = vec3(0.5019607843137255, 0.6705882352941176, 0.34509803921568627);
 vec3 col2 = vec3(0.7686274509803922, 0.8235294117647058, 0.8745098039215686);
 vec3 col3 = vec3(1., 0.8431, 0.);
 float resReflect = 0.5;
+float sdfReflect;
 
 float smin(float a, float b, float k) {
     float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
@@ -193,18 +194,99 @@ float exmp(vec3 p) {
     return d;
 
 }
+//https://mathcurve.com/courbes2d/larme/larme.shtml
+float larme2(vec2 p, float a)
+{
+    float k = 0.3;
+    float x = clamp(p.x, -a*0.95, a*k);
+    float f = acos(x/a);
+    float y = a*sin(f)*pow(sin(f/2.), 2.)*1.5;
+    float d = length(p - vec2(x, y));
+    //d = min(length(p - vec2(x, -y)), d);
+    if (abs(p.y) < abs(y))
+    {
+        sdfReflect = 0.;
+        sdfColor = col3;
+    }
+    else
+    {
+        sdfReflect = 0.3;
+        sdfColor = col1;
+    }
+    
+    f = acos(k);
+    y = a*sin(f)*pow(sin(f/2.), 2.)*1.5;
+    float y2 = clamp(p.y, -y, y);
+    float d2 = length(p - vec2(k*a, y2));
+    if (d2 < d)
+    {
+        d = d2;
+        if (p.x > x)
+        {
+            sdfReflect = 0.3;
+            sdfColor = col1;
+        }
+        else
+        {
+            sdfReflect = 0.;
+            sdfColor = col3;
+        }
+    }
+    
+    
+    return d;
+}
+
+float larme(vec3 p, float a)
+{
+    //float d = larme2(p.xy, a);
+    //d = length(vec2(p.z, d));
+    float l = length(p.xy);
+    float d = larme2(vec2(p.z, l), a);
+    return d*0.3 - 0.02;
+}
+
+//https://mathcurve.com/courbes2d.gb/bouche/bouche.shtml
+float kiss2(vec2 p, float a)
+{
+    
+    float x = clamp(p.x, -a, a);
+    float f = acos(x/a);
+    float y = a*pow(sin(f),3.)/3.;
+    float d = length(p - vec2(x, y));
+    d = min(length(p - vec2(x, -y)), d);
+    return d;
+}
+float kiss(vec3 p, float a)
+{
+    //float d = kiss2(p.xy, a);
+    //d = length(vec2(p.z, d));
+    float l = length(p.xy);
+    float d = kiss2(vec2(l, p.z), a);
+    return d*0.5 - 0.03;
+}
+//https://mathcurve.com/courbes2d/cissoiddroite/cissoiddroite.shtml
+float ciss(vec3 p, float a)
+{
+    float f = atan(p.y, p.x);
+    float r = a*(1./cos(f) - cos(f));
+    float x = r*cos(f);
+    float y = r*sin(f);
+    float d = length(p - vec3(x, y, 0.));
+    return d*0.5 - 0.03;
+}
 
 float map(vec3 p) {
 
-    float d = knot3(p);
-    resColor = col1;
-    resReflect = 0.;
+    float d = larme(p, 2.);//knot3(p);//kiss(p, 2.);//ciss(p, 2.);//
+    resColor = sdfColor;
+    resReflect = sdfReflect;
     return d;
 }
 
 
 vec3 csky(vec3 p) {
-    float n = 5., m = 5., dlat = PI / n, dlon = TAU / m;
+    float n = 6., m = 6., dlat = PI / n, dlon = TAU / m;
     float lon = mod(atan(p.y, p.x), TAU), lat = atan(length(p.xy), p.z);
     float fo = fract(lon / dlon), fa = fract(lat / dlat);
 
@@ -236,7 +318,7 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #define AA 2
 #endif
 */
-#define AA 1
+#define AA 2
 
 vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
     vec3 col = col_in;
@@ -268,16 +350,16 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     const float fl = 1.5; // focal length
     float dist = dist_infin;
 
-    //vec3 b1 = vec3(0.23529411764705882, 0.4235294117647059, 0.7725490196078432), b2 = vec3(0.3686274509803922, 0.5725490196078431, 0.8941176470588236);
-    //vec3 bg = mix(b2, b1, fragCoord.y / iResolution.y);   
-    vec3 bg = vec3(0.);
+    vec3 b1 = vec3(0.23529411764705882, 0.4235294117647059, 0.7725490196078432), b2 = vec3(0.3686274509803922, 0.5725490196078431, 0.8941176470588236);
+    vec3 bg = mix(b2, b1*b1, fragCoord.y / iResolution.y);   
+    //vec3 bg = vec3(0.);
     //antialiasing
     vec3 tot = vec3(0.0);
     for(int m = 0; m < AA; m++) for(int n = 0; n < AA; n++) {
             vec2 o = vec2(float(m), float(n)) / float(AA) - 0.5;
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
             vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
-            vec3 col = bg * bg; // background  
+            vec3 col = bg; // background  
             //==========================raymatch=============================
             float td = 0.;
             vec3 pos = vec3(0.);
@@ -306,8 +388,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             //==========================raymatch=============================
             tot += col;
         }
-    tot = sqrt(tot) / float(AA);
-    //tot = pow(tot, vec3(0.7)) / float(AA);
+    //tot = tot / float(AA);
+    tot = pow(tot, vec3(0.7)) / float(AA);
     //antialiasing
     fragColor = vec4(tot, 1.0);
 }

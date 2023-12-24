@@ -214,7 +214,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             vec2 o = vec2(float(m), float(n)) / float(AA) - 0.5;
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
             vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
-            vec3 col = bg * bg; // background  
+            vec3 col = bg; // background  
             //==========================raymatch=============================
             float td = 0.;
             vec3 pos = vec3(0.);
@@ -243,8 +243,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             //==========================raymatch=============================
             tot += col;
         }
-    tot = sqrt(tot) / float(AA);
-    //tot = pow(tot, vec3(0.7)) / float(AA);
+    //tot = sqrt(tot) / float(AA);
+    tot = tot / float(AA);
     //antialiasing
     fragColor = vec4(tot, 1.0);
 }
