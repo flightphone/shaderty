@@ -147,6 +147,8 @@ float knot3(vec3 p)
     float d = dist_infin;
     for (float i = 0.; i < 3.; i++)
         d = min(d, knot2(p, i));
+    sdfReflect = 0.8;
+    sdfColor = col3;    
     return d*0.45 - 0.1;    
 }
 /*
@@ -281,7 +283,7 @@ float ciss(vec3 p, float a)
 
 float map(vec3 p) {
 
-    float d = larme(p, 3.);//knot3(p);//kiss(p, 2.);//ciss(p, 2.);//
+    float d = knot3(p);//kiss(p, 2.);//ciss(p, 2.);//larme(p, 3.);//
     resColor = sdfColor;
     resReflect = sdfReflect;
     return d;
@@ -339,6 +341,27 @@ vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
     return col;
 }
 
+//https://www.shadertoy.com/view/dlKBRc
+vec3 lightingv3(vec3 lightColor, vec3 rd, vec3 L, vec3 normal) 
+{   
+    vec3 V = rd;
+    vec3 N = normal;
+    vec3 R = reflect (-L, N);
+    float shadow = 1.;
+    float occ = 1.0;
+    float Ka = 0.5;
+    vec3 ambient = Ka + Ka * dot(normal, vec3(0., 1., 0.))*lightColor;
+    ambient*=0.5;
+    vec3 fresnel =  lightColor *  pow(clamp(1.0 + dot(rd, N), 0.0, 1.0), 2.0);;
+    float diff= clamp(dot(N, L), 0., 1.0);
+    vec3 diffuse =  lightColor * diff;
+    float shininess=10.0;
+    float specular    = pow(max(dot(R, V), 0.0), shininess);
+    vec3 back = 0.5 * lightColor * clamp(dot(N, -L), 0.0, 1.0); // back
+    vec3 colOut = occ*lightColor*(ambient+diffuse*shadow+.25 +back) + vec3(.5)*specular*specular;
+    return colOut;
+}
+
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
     vec3 light2 = normalize(vec3(0.0, -1.0, 2.5)); //light
@@ -385,6 +408,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 vec3 c2 = csky(psk);
 
                 col = calccolor(col, col, -rd, light, light2, nor);
+                //col = lightingv3(col, -rd, light, nor);
                 col = mix(col, c2, resReflect);
 
                 //col += c2*0.1;

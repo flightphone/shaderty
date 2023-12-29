@@ -62,17 +62,42 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 */
 #define AA 1
 
-vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
-    vec3 col = col_in;
+vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
+    /*
     float d = dot(rd, nor);
-    if(d < 0.0)
+    if(d > 0.0)
+    {
         col = backcol;
-
-    nor *= -sign(d);
+        nor = - nor;
+    } 
+    */   
     float difu1 = dot(nor, light1);
     float difu2 = dot(nor, light2);
     float difu = max(difu1, difu2);
-    col *= clamp(difu, 0.3, 1.0);
+    
+
+    vec3 R1 = reflect (light1, nor);
+    vec3 R2 = reflect (light2, nor);
+    float shininess=10.0;
+    float specular1    =  pow(max(dot(R1, rd), 0.), shininess);
+    float specular2    =  pow(max(dot(R2, rd), 0.), shininess);
+    float specular = max(specular1, specular2);
+
+    
+    //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
+    col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
+
+    return col;
+}
+
+vec3 ccolor(vec3 col, vec3 rd, vec3 light, vec3 nor) {
+    vec3 R = reflect (light, nor);
+    float shininess=20.0;
+    float specular    =  pow(max(dot(R, rd), 0.), shininess);
+    
+    float difu = dot(nor, light);
+    //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
+    col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
     return col;
 }
 
@@ -113,13 +138,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             if(td < dist_infin) {
                 col = resColor;
                 vec3 nor = calcNormal(pos);
-                col = calccolor(col, col, -rd, light, light2, nor);
-
+                //col = calccolor(col, col, rd, light, light2, nor);
+                col = ccolor(col, rd, light, nor);
             }
             //==========================raymatch=============================
             tot += col;
         }
     tot = sqrt(tot) / float(AA);
+    //tot = tot / float(AA);
     //antialiasing
     fragColor = vec4(tot, 1.0);
 }

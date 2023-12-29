@@ -37,7 +37,7 @@ vec3 greekwave(vec2 U)
 
 vec3 men1(vec2 p)
 {
-    float n = 10.;
+    float n = 4.;
     float w = 0.5;
     p = (p - 0.5)*n;
     vec2 a = floor(p);
@@ -79,6 +79,23 @@ vec3 men1(vec2 p)
     }
     
     return res;    
+}
+vec3 men3(vec2 p)
+{
+    p*=vec2(6.,7.);
+    vec2 a = floor(p);
+    vec3 res = vec3(1.0);
+    if (a.y == 0. || a.y == 6.)
+        res = vec3(0.0);
+    if (a.x == 0. && a.y < 6. && a.y > 2.)    
+        res = vec3(0.0);
+    if (a.y == 2. && (a.x < 2. || a.x == 5.))    
+        res = vec3(0.0);
+    if (a.y == 4. && a.x >= 2. && a.x <=4.)    
+        res = vec3(0.0);
+    if (a.x == 3. && a.y < 4.)    
+        res = vec3(0.0);    
+    return 1. - res;    
 }
 vec3 men2(vec2 p)
 {
@@ -135,7 +152,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     if (k == 0.)
         tot = greekwave(p);
     if (k == 1.)
-        tot = men2(p);    
+        tot = men2(p);   
+    if (k == 2.)
+        tot = men3(p);           
          
     //men2(p);//
     fragColor = vec4(tot, 1.0);

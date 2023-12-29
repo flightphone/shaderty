@@ -22,22 +22,20 @@ uniform sampler2D u_tex1;
 #define TAU 6.28318530718
 #define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
 
+
 const float dist_infin = 10.0;
 #define nn 128
 const float eps = 0.001;
 
 vec3 sdfColor;
 vec3 resColor;
-//vec3 col1 = vec3(0.5019607843137255, 0.6705882352941176, 0.34509803921568627);
 vec3 col1 = vec3(.2);
-//vec3 col1 = vec3(0.3137254901960784, 0.7843137254901961, 0.47058823529411764);
-//vec3 col2 = vec3(0.7686274509803922, 0.8235294117647058, 0.8745098039215686);
 vec3 col2 = vec3(0.4745098039215686, 0.26666666666666666, 0.23137254901960785);
 vec3 col3 = vec3(1., 0.8431, 0.);
 float resReflect = 0.5;
 float sdfReflect;
 
-
+float mtime = 0.;
 //https://mathcurve.com/courbes2d/larme/larme.shtml
 float larme2(vec2 p, float a)
 {
@@ -48,7 +46,6 @@ float larme2(vec2 p, float a)
     float f = acos(x/a);
     float y = a*sin(f)*pow(sin(f/2.), 2.)*zoom;
     float d = length(p - vec2(x, y));
-    //d = min(length(p - vec2(x, -y)), d);
     if (abs(p.y) < abs(y))
     {
         sdfReflect = 0.;
@@ -80,13 +77,26 @@ float larme2(vec2 p, float a)
     }
     return d;
 }
+float larme(vec3 p, float a)
+{
+    float l = length(p.xy);
+    float d = larme2(vec2(p.z, l), a);
+    return d*0.3 - 0.02;
+}
+
+float ep = 0.3;
 float men2(vec2 p)
 {
     p*=vec2(8., 11.);
     vec2 a = floor(p);
-    float res = 1.0;
+    float res = 0.;
+    /*
     if (a.y == 0. || a.y == 10.)
-        res = 0.0;
+        res = 1.0;
+    */
+    res += smoothstep(0., ep, p.y)*smoothstep(1., 1.-ep, p.y);
+    res += smoothstep(10., 10.+ep, p.y)*smoothstep(11., 11.-ep, p.y);
+    
     a.y = a.y - 2.;
     float mx, mi;
     
@@ -96,9 +106,13 @@ float men2(vec2 p)
         float d = (a.y <=2.)? 0.:1.;
         mi = 5.-h-d;
         mx = 5.+h-2.*d;
+        //res = smoothstep(mi, mi+ep, p.x)*smoothstep(mx+1., mx+1.-ep, p.x);
         if (a.x <= mx && a.x >= mi) 
-            res = 0.;
+            res = 1.;
+        
     }    
+    
+    
     if (mod(a.x, 2.) == 0.)
     {
         mx = 0.;
@@ -108,6 +122,7 @@ float men2(vec2 p)
             float h = 3.-a.x;
             mi = clamp(2.-h, 0., 6.);
             mx = 3.+ h;
+            
 
         }
 
@@ -115,32 +130,68 @@ float men2(vec2 p)
         {
             mi = 3.;
             mx = 6.;
+            
         }
-
+        
         if (a.y <= mx && a.y >= mi) 
-            res = 0.;
+            res = 1.;
+        
+        
         
     }
     
     return res;
 }
 
-float larme(vec3 p, float a)
-{
-    float l = length(p.xy);
-    float d = larme2(vec2(p.z, l), a);
 
+
+//https://www.shadertoy.com/view/4ljBWd
+float greekwave(vec2 U)
+{
+    U = fract(U)-.5;                           // local tile coords in [-.5,.5]²
     
-    return d*0.3 - 0.02;
+    float v, d = length(U),                    // distance to tile center
+          t = 4.5*PI,                          // note the time delay with position
+          a = t * max(0.,.5-d );               // angle ~time, and decrease with d
+    U *= rot(a);   // rotate frame by angle(t,d)
+    v = U.y;   
+    float O = smoothstep(-1.,1.,v*500. );  
+    return O;     
 }
 
 
+float men3(vec2 p)
+{
+    p*=vec2(6.,7.);
+    vec2 a = floor(p);
+    float res = 1.0;
+    if (a.y == 0. || a.y == 6.)
+        res = 0.;
+    if (a.x == 0. && a.y < 6. && a.y > 2.)    
+        res = 0.;
+    if (a.y == 2. && (a.x < 2. || a.x == 5.))    
+        res = 0.;
+    if (a.y == 4. && a.x >= 2. && a.x <=4.)    
+        res = 0.;
+    if (a.x == 3. && a.y < 4.)    
+        res = 0.;
+    return res;    
+}
+
 
 float map(vec3 p) {
+    p.yz *= rot(-PI/2.);
+    p.yz *= rot(mtime/2.);
+    p.xz *= rot(mtime);
+    
+    
+    
+    
+    
     float a = 3.;
     float d = larme(p, a);
 
-    if (d <= eps && sdfColor == col1)
+    if (d <= 10.0*eps && sdfColor == col1)
     {
         float n = 20., dlon = TAU/n, lon = mod(atan(p.y, p.x), TAU), dx = fract(lon/dlon);
         float k = 0.3;
@@ -149,6 +200,36 @@ float map(vec3 p) {
         if (h > -a*0.9 && h < -a*0.8)
         {
             float dy = (h + a*0.9)/0.1/a, r = men2(vec2(1.-dx, dy));
+            sdfColor = mix(col1, col3, r);
+            sdfReflect = mix(0.05, 0.5, r);
+        }
+
+        if (h > -a*0.8 && h < -a*0.7)
+        {
+            float dy = (h + a*0.8)/0.1/a, r = greekwave(vec2(1.-dx, dy));
+            if (r == 1.)
+            {
+                sdfReflect = 0.5;
+                sdfColor = col3;
+            }
+        }
+        if (h > -a*0.7 && h < -a*0.5)
+        {
+            float dy = (h + a*0.7)/0.2/a, r =1.-men2(vec2(1.-dx, dy));
+            sdfColor = mix(col1, col3, r);
+            sdfReflect = mix(0.05, 0.5, r);
+            /*
+            if (r == 1.)
+            {
+                sdfReflect = 0.5;
+                sdfColor = col3;
+            }
+            */
+        }
+
+        if (h > a*0.2 && h < a*0.3)
+        {
+            float dy = (h - a*0.2)/0.1/a, r = men3(vec2(dx, dy));
             if (r == 0.)
             {
                 sdfReflect = 0.5;
@@ -156,15 +237,7 @@ float map(vec3 p) {
             }
         }
 
-        if (h > a*0.2 && h < a*0.3)
-        {
-            float dy = (h - a*0.2)/0.1/a, r = men2(vec2(1.-dx, dy));
-            if (r == 1.)
-            {
-                sdfReflect = 0.5;
-                sdfColor = col3;
-            }
-        }
+        
     }
 
 
@@ -210,21 +283,68 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #endif
 */
 #define AA 2
-
-vec3 calccolor(vec3 col, vec3 rd, vec3 light, vec3 nor) {
+/*
+vec3 ccolor(vec3 col, vec3 rd, vec3 light, vec3 nor) {
     float d = dot(rd, nor);
     nor *= -sign(d);
     float difu = dot(nor, light);
     col *= clamp(difu, 0.3, 1.0);
     return col;
 }
+*/
+//new color 29.12.2023
+vec3 ccolor(vec3 col, vec3 rd, vec3 light, vec3 nor) {
+    //float d = dot(rd, nor);
+    //nor *= -sign(d);
+
+    vec3 R = reflect (light, nor);
+    float shininess=10.0;
+    float specular    =  pow(max(dot(R, rd), 0.), shininess);
+    
+    float difu = dot(nor, light);
+    //col = col*(col*clamp(difu, 0., 1.0) + 0.3);// + vec3(.5)*specular*specular;
+    col = col*clamp(difu, 0.3, 1.0);// + vec3(.5)*specular*specular;
+    return col;
+}
+
+vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
+    float difu1 = dot(nor, light1);
+    float difu2 = dot(nor, light2);
+    float difu = max(difu1, difu2);
+    //col *= clamp(difu, 0.3, 1.0);
+
+    vec3 R1 = reflect (light1, nor);
+    vec3 R2 = reflect (light2, nor);
+    float shininess=10.0;
+    float specular1    =  pow(max(dot(R1, rd), 0.), shininess);
+    float specular2    =  0.0;//pow(max(dot(R2, rd), 0.), shininess);
+    float specular = max(specular1, specular2);
+
+    //col+= vec3(.5)*specular*specular;
+    col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
+    //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
+    
+
+    return col;
+}
+
+// https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+vec3 ACESFilm(vec3 x){
+    return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+}
+
+
+
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec3 light = normalize(vec3(1.0, 1.0, 2.5)); //light
+    vec3 light = normalize(vec3(1.0, -1.0, -1.)); //light
+    vec3 light2 = normalize(vec3(0., 1.0, 0.)); //light
     vec2 mo = vec2(0.0, 0.0);
+    mtime = iTime;
     //if  (iMouse.z > 0.0)
     {
         mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
+        mtime = 0.;
     }
     vec3 ro = vec3(0.0, 0.0, 6.0); // camera
     //camera rotation
@@ -262,8 +382,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
                 vec3 psk = reflect(rd, nor);
                 vec3 c2 = csky(psk);
-
-                col = calccolor(col, -rd, light, nor);
+                
+                //col = ccolor(col, rd, light, nor);
+                col = calccolor(col, col, rd, light, light2, nor);
+                
                 col = mix(col, c2, resReflect);
 
                 //col += c2*0.1;
@@ -272,8 +394,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             //==========================raymatch=============================
             tot += col;
         }
-    tot = tot / float(AA);
+    tot = tot / float(AA);    
+    //tot = pow(tot, vec3(0.4545)) / float(AA);
+    //tot = ACESFilm(tot);
     //tot = pow(tot, vec3(0.7)) / float(AA);
+    
+    //tot = pow(tot, vec3(0.4545));
     //antialiasing
     fragColor = vec4(tot, 1.0);
 }

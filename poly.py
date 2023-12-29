@@ -149,9 +149,3 @@ def param():
     return x, y, z, t
 
 
-a = [121, 68, 59]
-for i, e in enumerate(a):
-    a[i] = e/255
-print (a)   
-
-#print(0.25*0.25)

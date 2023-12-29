@@ -191,7 +191,7 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #endif
 */
 #define AA 1
-
+/*
 vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
     vec3 col = col_in;
     float d = dot(rd, nor);
@@ -205,7 +205,132 @@ vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
     col *= clamp(difu, 0.3, 1.0);
     return col;
 }
+*/
 
+vec3 ccolor(vec3 col, vec3 rd, vec3 light, vec3 nor) {
+    vec3 R = reflect (light, nor);
+    float shininess=20.0;
+    float specular    =  pow(max(dot(R, rd), 0.), shininess);
+    
+    float difu = dot(nor, light);
+    //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
+    col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
+    return col;
+}
+
+vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
+    float difu1 = dot(nor, light1);
+    float difu2 = dot(nor, light2);
+    float difu = max(difu1, difu2);
+    
+
+    vec3 R1 = reflect (light1, nor);
+    vec3 R2 = reflect (light2, nor);
+    float shininess=10.0;
+    float specular1    =  pow(max(dot(R1, rd), 0.), shininess);
+    float specular2    =  pow(max(dot(R2, rd), 0.), shininess);
+    float specular = max(specular1, specular2);
+
+    
+    //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
+    col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
+
+    return col;
+}
+
+//https://www.shadertoy.com/view/dlKBRc
+vec3 lightingv3(vec3 lightColor, vec3 rd, vec3 L, vec3 normal) 
+{   
+    vec3 V = rd;
+    vec3 N = normal;
+    vec3 R = reflect (-L, N);
+    float shadow = 1.;
+    float occ = 1.;
+    float Ka = 0.5;
+    vec3 ambient = Ka + Ka * dot(normal, vec3(0., 1., 0.))*lightColor;
+    ambient*=0.5;
+    vec3 fresnel =  lightColor *  pow(clamp(1.0 + dot(rd, N), 0.0, 1.0), 2.0);;
+    float diff= clamp(dot(N, L), 0., 1.0);
+    vec3 diffuse =  lightColor * diff;
+    float shininess=10.0;
+    float specular    = pow(max(dot(R, V), 0.0), shininess);
+    vec3 back = 0.5 * lightColor * clamp(dot(N, -L), 0.0, 1.0); // back
+    vec3 colOut = occ*lightColor*(ambient+diffuse*shadow+.25 +back) + vec3(.5)*specular*specular;
+    return colOut;
+}
+// https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+vec3 ACESFilm(vec3 x){
+    return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+}
+
+// https://iquilezles.org/articles/nvscene2008/rwwtt.pdf
+float calcAO( in vec3 pos, in vec3 nor )
+{
+	float occ = 0.0;
+    float sca = 1.0;
+    for( int i=0; i<5; i++ )
+    {
+        float h = 0.01 + 0.12*float(i)/4.0;
+        float d = map( pos + h*nor );
+        occ += (h-d)*sca;
+        sca *= 0.95;
+        if( occ>0.35 ) break;
+    }
+    return clamp( 1.0 - 3.0*occ, 0.0, 1.0 ) * (0.5+0.5*nor.y);
+}
+
+//https://www.shadertoy.com/view/Xds3zN , 555 row
+vec3 iqcolor(vec3 col, vec3 rd, vec3 light, vec3 nor, vec3 pos)
+{
+    float ks = 1.0; //0.4;
+    // lighting
+    float occ = 1.;//calcAO( pos, nor );
+    vec3 lin = vec3(0.0);
+    vec3 ref = reflect( rd, nor );
+
+
+        // sun
+        {
+            vec3  lig = light;
+            vec3  hal = normalize( lig-rd );
+            float dif = clamp( dot( nor, lig ), 0.3, 1.0 );
+            //if( dif>0.0001 )
+        	//dif *= calcSoftshadow( pos, lig, 0.02, 2.5 );
+			float spe = pow( clamp( dot( nor, hal ), 0.0, 1.0 ),16.0);
+                  spe *= dif;
+                  spe *= 0.04+0.96*pow(clamp(1.0-dot(hal,lig),0.0,1.0),5.0);
+                //spe *= 0.04+0.96*pow(clamp(1.0-sqrt(0.5*(1.0-dot(rd,lig))),0.0,1.0),5.0);
+            lin += col*2.20*dif*vec3(1.30,1.00,0.70);
+            lin +=     5.00*spe*vec3(1.30,1.00,0.70)*ks;
+        }
+
+        // sky
+        {
+            float dif = sqrt(clamp( 0.5+0.5*nor.y, 0.0, 1.0 ));
+                  dif *= occ;
+            float spe = smoothstep( -0.2, 0.2, ref.y );
+                  spe *= dif;
+                  spe *= 0.04+0.96*pow(clamp(1.0+dot(nor,rd),0.0,1.0), 5.0 );
+          //if( spe>0.001 )
+                  //spe *= calcSoftshadow( pos, ref, 0.02, 2.5 );
+            lin += col*0.60*dif*vec3(0.40,0.60,1.15);
+            lin +=     2.00*spe*vec3(0.40,0.60,1.30)*ks;
+        }
+
+        // back
+        {
+        	float dif = clamp( dot( nor, normalize(vec3(0.5,0.0,0.6))), 0.0, 1.0 )*clamp( 1.0-pos.y,0.0,1.0);
+                  dif *= occ;
+        	lin += col*0.55*dif*vec3(0.25,0.25,0.25);
+        }
+        // sss
+        {
+            float dif = pow(clamp(1.0+dot(nor,rd),0.0,1.0),2.0);
+                  dif *= occ;
+        	lin += col*0.25*dif*vec3(1.00,1.00,1.00);
+        }
+        return lin;
+}
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
     vec3 light2 = normalize(vec3(0.0, -1.0, 2.5)); //light
@@ -224,15 +349,16 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     const float fl = 1.5; // focal length
     float dist = dist_infin;
 
-    vec3 b1 = vec3(0.6235294117647059, 0.8, 0.9803921568627451), b2 = vec3(0.49019607843137253, 0.6980392156862745, 0.9568627450980393);
-    vec3 bg = mix(b1, b2, vec3(fragCoord.y / iResolution.y));   
+    vec3 b1 = vec3(0.23529411764705882, 0.4235294117647059, 0.7725490196078432), b2 = vec3(0.3686274509803922, 0.5725490196078431, 0.8941176470588236);
+    vec3 bg = mix(b2, b1*b1, fragCoord.y / iResolution.y);     
+    //bg = vec3(1.);
     //antialiasing
     vec3 tot = vec3(0.0);
     for(int m = 0; m < AA; m++) for(int n = 0; n < AA; n++) {
             vec2 o = vec2(float(m), float(n)) / float(AA) - 0.5;
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
             vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
-            vec3 col = bg * bg; // background  
+            vec3 col = bg; // background  
             //==========================raymatch=============================
             float td = 0.;
             vec3 pos = vec3(0.);
@@ -246,13 +372,18 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             if(td < dist_infin) {
                 col = resColor;
                 vec3 nor = calcNormal(pos);
-                col = calccolor(col, col, -rd, light, light2, nor);
+                col = calccolor(col, col, rd, light, light2, nor);
+                //col = ccolor(col, rd, light, nor);
+                //col = lightingv3(col, -rd, light, nor); 
+                //col = iqcolor(col, rd, light, nor, pos);
 
             }
             //==========================raymatch=============================
             tot += col;
         }
-    tot = sqrt(tot) / float(AA);
+    tot = tot / float(AA);
+    //tot = pow(tot, vec3(0.7)) / float(AA);
+    tot = ACESFilm(tot);
     //antialiasing
     fragColor = vec4(tot, 1.0);
 }

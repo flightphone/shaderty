@@ -104,10 +104,18 @@ vec3 culccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
         col = backcol;
     
     nor *= -sign(d);
+    vec3 R = reflect (light1, nor);
+    
     float difu1 = dot(nor, light1);
     float difu2 = dot(nor, light2);
     float difu = max(difu1, difu2);
-        col *= clamp(difu, 0.3, 1.0);
+    float shininess=10.0;
+    float h = max(dot(R, rd), 0.);
+    float specular    =  pow(max(dot(R, rd), 0.), shininess);
+
+    //float amb = 0.5;// + 0.5 * max(dot(nor, light1), 0.);
+    col = col*clamp(difu, 0.3, 1.0) + 0.5*specular*specular;
+    col = clamp(col, vec3(0.), vec3(1.0));
     return col;   
 }
 
@@ -244,11 +252,119 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
     return normalize(i);
 }
 
+//https://www.shadertoy.com/view/dlKBRc
+vec3 lightingv3(vec3 lightColor, vec3 backcol, vec3 rd, vec3 L, vec3 normal) 
+{   
+    float d = dot(rd, normal);
+    if (d < 0.0)
+    {
+        lightColor = backcol;
+        normal = -normal;
+    }
+
+    vec3 V = rd;
+    vec3 N = normal;
+    vec3 R = reflect (-L, N);
+    float shadow = 1.;
+    float occ = 1.;
+    float Ka = 0.5;
+    //vec3 ambient = 0.0;//Ka + Ka * lightColor; //dot(normal, vec3(0., 1., 0.))
+    //ambient*=0.5;
+    float diff= clamp(dot(N, L), 0.3, 1.0);
+    vec3 diffuse =  lightColor * diff;
+    float shininess=10.0;
+    float specular    =  pow(max(dot(R, V), 0.), shininess);
+    vec3 back = 0.5 * lightColor * clamp(dot(N, -L), 0.0, 1.0); // back
+    vec3 colOut = occ*lightColor*(diffuse*shadow+.25 +back) + vec3(.5)*specular*specular;
+    return clamp(colOut, vec3(0.0), vec3(1.0));
+}
+
+
+//https://www.shadertoy.com/view/Xds3zN , 555 row
+vec3 iqcolor(vec3 col, vec3 backcol, vec3 rd, vec3 light, vec3 light2, vec3 nor)
+{
+    if (dot(rd, nor) < 0.)
+    {
+        col = backcol;
+        nor = -nor;
+    }
+    float ks = 1.;
+    // lighting
+    float occ = .8;//calcAO( pos, nor );
+    vec3 lin = vec3(0.0);
+    vec3 ref = reflect( rd, nor );
+
+
+        // sun
+        {
+            vec3  lig = light;
+            vec3  hal = normalize( lig-rd );
+            float dif = clamp( dot( nor, lig ), 0.3, 1.0 );
+            //if( dif>0.0001 )
+        	//dif *= calcSoftshadow( pos, lig, 0.02, 2.5 );
+			float spe = pow( clamp( dot( nor, hal ), 0.0, 1.0 ),16.0);
+                  spe *= dif;
+                  spe *= 0.04+0.96*pow(clamp(1.0-dot(hal,lig),0.0,1.0),5.0);
+                //spe *= 0.04+0.96*pow(clamp(1.0-sqrt(0.5*(1.0-dot(rd,lig))),0.0,1.0),5.0);
+            lin += col*2.20*dif*vec3(1.30,1.00,0.70);
+            lin +=     5.00*spe*vec3(1.30,1.00,0.70)*ks;
+        }
+
+        // sun2
+        {
+            vec3  lig = light2;
+            vec3  hal = normalize( lig-rd );
+            float dif = clamp( dot( nor, lig ), 0.3, 1.0 );
+            //if( dif>0.0001 )
+        	//dif *= calcSoftshadow( pos, lig, 0.02, 2.5 );
+			float spe = pow( clamp( dot( nor, hal ), 0.0, 1.0 ),16.0);
+                  spe *= dif;
+                  spe *= 0.04+0.96*pow(clamp(1.0-dot(hal,lig),0.0,1.0),5.0);
+                //spe *= 0.04+0.96*pow(clamp(1.0-sqrt(0.5*(1.0-dot(rd,lig))),0.0,1.0),5.0);
+            lin += col*2.20*dif*vec3(1.30,1.00,0.70);
+            lin +=     5.00*spe*vec3(1.30,1.00,0.70)*ks;
+        }
+
+        lin /= 2.;
+
+
+        
+        // sky
+        
+        {
+            float dif = sqrt(clamp( 0.5+0.5*nor.z, 0.0, 1.0 ));
+                  dif *= occ;
+            float spe = smoothstep( -0.2, 0.2, ref.z );
+                  spe *= dif;
+                  spe *= 0.04+0.96*pow(clamp(1.0+dot(nor,rd),0.0,1.0), 5.0 );
+          //if( spe>0.001 )
+                  //spe *= calcSoftshadow( pos, ref, 0.02, 2.5 );
+            lin += col*0.60*dif*vec3(0.40,0.60,1.15);
+            lin +=     2.00*spe*vec3(0.40,0.60,1.30)*ks;
+        }
+        
+
+        // back
+        /*
+        {
+        	float dif = clamp( dot( nor, normalize(vec3(0.5,0.0,0.6))), 0.0, 1.0 )*clamp( 1.0-pos.y,0.0,1.0);
+                  dif *= occ;
+        	lin += col*0.55*dif*vec3(0.25,0.25,0.25);
+        }
+        */
+        // sss
+        {
+            float dif = pow(clamp(1.0+dot(nor,rd),0.0,1.0),2.0);
+                  dif *= occ;
+        	lin += col*0.25*dif*vec3(1.00,1.00,1.00);
+        }
+        return lin;
+}
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
     //surface (x+y+z-a)(xy+yz+zx) - kxyz = 0
-    vec3 light = normalize(vec3(0.0, 0.0, -1.0)); //light
-    vec3 light2 = normalize(vec3(0.0, 0.0, 1.0)); //light
+    vec3 light = normalize(vec3(.0, 1.0, 1.0)); //light
+    vec3 light2 = normalize(vec3(.0, -1.0, -1.0)); //light
 
     float ra = 3.0;
     float g = 1.0;
@@ -257,8 +373,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     vec2 m = vec2(0.0, 0.0);
     //if  (iMouse.z > 0.0)
     {
-        //m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
-        //t = 0.;
+        m = (-iResolution.xy + 2.0*(iMouse.xy))/iResolution.y;
+        t = 0.;
     }
     vec3 ro = vec3(0.0, 0.0, 6.); // camera
     ro = rotateY(-m.x*TAU)*rotateX(-m.y*PI)*ro; //camera rotation
@@ -291,12 +407,14 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         HIT giper = giper3D(rota*ro, rota*rd, g, ra);
         if (giper.dist < dist)
         {
-            col = vec3(0.5, 0.5, 1.0);
+            col = vec3(0.1, 0.1, .9);
             vec3 backcol = vec3(1.0, 0.2, 0.2);
             vec3 nor = rota_1*giper.nor;
             col = culccolor(col, backcol, -rd, light, light2, nor);
+            //col = iqcolor(col, backcol, rd, light, light2, nor);
+            //col = lightingv3(col, backcol, -rd, light, nor);
             // gamma
-            //col = pow( col, vec3(0.4545) ); 
+            //col = pow( col, vec3(0.7) ); 
             //reflect
             //col = calcSkyReflect(-rd, nor, sky);
         }
