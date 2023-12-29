@@ -118,40 +118,34 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 */
 #define AA 2
 
-vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
-    vec3 col = col_in;
+vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
+    /*
     float d = dot(rd, nor);
-    if(d < 0.0)
+    if(d > 0.0)
+    {
         col = backcol;
-
-    nor *= -sign(d);
+        nor = - nor;
+    } 
+    */   
     float difu1 = dot(nor, light1);
     float difu2 = dot(nor, light2);
     float difu = max(difu1, difu2);
-    col *= clamp(difu, 0.3, 1.0);
+    
+
+    vec3 R1 = reflect (light1, nor);
+    vec3 R2 = reflect (light2, nor);
+    float shininess=10.0;
+    float specular1    =  pow(max(dot(R1, rd), 0.), shininess);
+    float specular2    =  pow(max(dot(R2, rd), 0.), shininess);
+    float specular = max(specular1, specular2);
+
+    
+    //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
+    col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
+
     return col;
 }
 
-//https://www.shadertoy.com/view/dlKBRc
-vec3 lightingv3(vec3 lightColor, vec3 rd, vec3 L, vec3 normal) 
-{   
-    vec3 V = rd;
-    vec3 N = normal;
-    vec3 R = reflect (-L, N);
-    float shadow = 1.;
-    float occ = 0.7;
-    float Ka = 0.5;
-    vec3 ambient = Ka + Ka * dot(normal, vec3(0., 1., 0.))*lightColor;
-    ambient*=0.5;
-    vec3 fresnel =  lightColor *  pow(clamp(1.0 + dot(rd, N), 0.0, 1.0), 2.0);;
-    float diff= clamp(dot(N, L), 0., 1.0);
-    vec3 diffuse =  lightColor * diff;
-    float shininess=10.0;
-    float specular    = pow(max(dot(R, V), 0.0), shininess);
-    vec3 back = 0.5 * lightColor * clamp(dot(N, -L), 0.0, 1.0); // back
-    vec3 colOut = occ*lightColor*(ambient+diffuse*shadow+.25 +back) + vec3(.5)*specular*specular;
-    return colOut;
-}
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
@@ -190,8 +184,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             if(td < dist_infin) {
                 col = resColor;
                 vec3 nor = calcNormal(pos);
-                //col = calccolor(col, col, -rd, light, light2, nor);
-                col = lightingv3(col, -rd, light, nor);
+                col = calccolor(col, col, rd, light, light2, nor);
+                
 
 
             }

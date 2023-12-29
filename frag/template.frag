@@ -63,14 +63,7 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #define AA 1
 
 vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
-    /*
-    float d = dot(rd, nor);
-    if(d > 0.0)
-    {
-        col = backcol;
-        nor = - nor;
-    } 
-    */   
+    
     float difu1 = dot(nor, light1);
     float difu2 = dot(nor, light2);
     float difu = max(difu1, difu2);
@@ -91,10 +84,18 @@ vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 n
 }
 
 vec3 ccolor(vec3 col, vec3 rd, vec3 light, vec3 nor) {
-    vec3 R = reflect (light, nor);
-    float shininess=20.0;
-    float specular    =  pow(max(dot(R, rd), 0.), shininess);
     
+    //jorge2017a2
+    
+    vec3 R = reflect (light, nor);
+    float specular    =  pow(max(dot(R, rd), 0.), 16.);
+    
+    //iq
+    /*
+    vec3  hal = normalize( light-rd );
+    float specular = pow( clamp( dot( nor, hal ), 0.0, 1.0 ),16.0);
+    */
+
     float difu = dot(nor, light);
     //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
     col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
@@ -102,8 +103,8 @@ vec3 ccolor(vec3 col, vec3 rd, vec3 light, vec3 nor) {
 }
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
-    vec3 light2 = normalize(vec3(0.0, -1.0, 2.5)); //light
+    vec3 light = normalize(vec3(0.0, .0, 1.)); //light
+    vec3 light2 = normalize(vec3(0.0, 0.0, -1.)); //light
     vec2 mo = vec2(0.0, 0.0);
     //if  (iMouse.z > 0.0)
     {

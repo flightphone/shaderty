@@ -274,13 +274,8 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 */
 #define AA 2
 
-vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
-    vec3 col = col_in;
-    float d = dot(rd, nor);
-    if(d < 0.0)
-        col = backcol;
-
-    nor *= -sign(d);
+vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
+    
     float difu1 = dot(nor, light1);
     float difu2 = dot(nor, light2);
     float difu = max(difu1, difu2);
@@ -288,7 +283,7 @@ vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
 
     vec3 R1 = reflect (light1, nor);
     vec3 R2 = reflect (light2, nor);
-    float shininess=5.0;
+    float shininess=15.0;
     float specular1    =  pow(max(dot(R1, rd), 0.), shininess);
     float specular2    =  pow(max(dot(R2, rd), 0.), shininess);
     float specular = max(specular1, specular2);

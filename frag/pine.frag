@@ -331,7 +331,9 @@ float fcolor(float x)
 float petalArti(vec3 pos, float w, float h)
 {
     //PI/7.
-    vec3 p = rotateX(fi)*pos;
+    //vec3 p = rotateX(fi)*pos;
+    float rs = 8.0 + 3.0*cos(iTime);
+    vec3 p = rotateX(PI/rs)*pos;
     
     float y = clamp(p.y/h, 0., 1.);
     float lh = .5;
@@ -472,9 +474,9 @@ float map(in vec3 pos) {
    //return def1(pos, 0., 1., 1.);
    //return sdConePine(pos, 2.0);
    //return petalArti(pos, 1., 1.);
-   //return sdArtichoke(pos, .8);
+   return sdArtichoke(pos, .8);
    //return petal(pos, .6, .6);
-   return sdConePine3D(pos, 2.);
+   //return sdConePine3D(pos, 2.);
    //return petalPine(pos, 1., 1.);
 }
 
@@ -526,7 +528,7 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #endif
 */
 #define AA 1
-
+/*
 vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor)
 {
     vec3 col = col_in;
@@ -541,6 +543,29 @@ vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
         col *= clamp(difu, 0.3, 1.0);
     return col;   
 }
+*/
+
+vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
+    
+    float difu1 = dot(nor, light1);
+    float difu2 = dot(nor, light2);
+    float difu = max(difu1, difu2);
+    
+
+    vec3 R1 = reflect (light1, nor);
+    vec3 R2 = reflect (light2, nor);
+    float shininess=10.0;
+    float specular1    =  pow(max(dot(R1, rd), 0.), shininess);
+    float specular2    =  pow(max(dot(R2, rd), 0.), shininess);
+    float specular = max(specular1, specular2);
+
+    
+    //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
+    col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
+
+    return col;
+}
+
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
     vec3 light2 = normalize(vec3(0.0, -1.0, 2.5)); //light
@@ -573,7 +598,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             if(giper.dist < dist) {
                 vec3 nor = rota_1 * giper.nor;
                 col = resColor;
-                col = calccolor(col, col, -rd, light, light2, nor);
+                col = calccolor(col, col, rd, light, light2, nor);
             }
             tot += col;
         }
