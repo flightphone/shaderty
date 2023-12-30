@@ -22,6 +22,20 @@ uniform sampler2D u_tex1;
 #define TAU 6.28318530718
 #define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
 
+// IQ's vec2 to float hash.
+float hash21(vec2 p){  
+    return fract(sin(mod(dot(p, vec2(27.609, 57.583)), 6.2831853))*43758.5453); 
+}
+
+vec3 men5(vec2 p)
+{
+    float f = hash21(p);
+    vec3 res = vec3(1.0);
+    if (f > 0.95)
+        res = vec3(0.);
+    return res;    
+}
+
 vec3 greekwave(vec2 U)
 {
     U = fract(U)-.5;                           // local tile coords in [-.5,.5]²
@@ -154,7 +168,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     if (k == 1.)
         tot = men2(p);   
     if (k == 2.)
-        tot = men3(p);           
+        tot = men5(p);           
          
     //men2(p);//
     fragColor = vec4(tot, 1.0);

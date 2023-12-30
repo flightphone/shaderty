@@ -28,15 +28,30 @@ const float eps = 0.001;
 
 vec3 sdfColor;
 vec3 resColor;
-vec3 col1 = vec3(0.3764, 0.8196, 0.3725);
+//vec3 col1 = vec3(0.85, 0.75, 0.65);
+vec3 col1 = vec3(0.024,0.357,0.153);//vec3(0.4745098039215686, 0.26666666666666666, 0.23137254901960785);
 vec3 col2 = vec3(0.8117, 0.1764, 0.8078);
 
+float gaudi(vec3 p)
+{
+    float x = clamp(p.x, -2., 2.);
+    float y = clamp(p.y, -PI/2., PI/2.);
+    float a = 6.;
+    float k = 0.3;
+    float z1 = k*x*sin(y*a + iTime*3.);
+    float z2 = sin(y*a + iTime*3.)*cos(x*a + iTime )*k;
+    float z = z1;
+    float d = length(p - vec3(x, y, z))*0.3 - 0.01;
+    sdfColor = col1;
+    
+    return d;
+}
 
 float map(vec3 p) {
-    p.xy *=rot(iTime);
-    float pst = smoothstep(0.1, 0., abs(atan(p.y, p.x) - PI/4.)); 
-    resColor = mix(col1, col2, pst);
-    return (length(p) - 1.);
+
+     float d = gaudi(p);
+     resColor = sdfColor;
+     return d;
 }
 
 // https://iquilezles.org/articles/normalsSDF
@@ -67,6 +82,7 @@ vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 n
     float difu1 = dot(nor, light1);
     float difu2 = dot(nor, light2);
     float difu = max(difu1, difu2);
+    float amb = difu1;
     
 
     vec3 R1 = reflect (light1, nor);
@@ -76,9 +92,10 @@ vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 n
     float specular2    =  pow(max(dot(R2, rd), 0.), shininess);
     float specular = max(specular1, specular2);
 
-    
-    //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
-    col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
+    amb = 0.5 + 0.5 * amb;
+    amb*=0.5;
+    col = col*clamp(difu, 0.3, 1.0) + vec3(.2)*specular*specular + col*amb;
+    //col = col*(col*clamp(difu, 0.1, 1.0) + 0.3);// + vec3(.5)*specular*specular;
 
     return col;
 }
@@ -101,12 +118,10 @@ vec3 ccolor(vec3 col, vec3 rd, vec3 light, vec3 nor) {
     col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
     return col;
 }
-
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 vec3 ACESFilm(vec3 x){
     return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
 }
-
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, .0, 1.)); //light
     vec3 light2 = normalize(vec3(0.0, 0.0, -1.)); //light
@@ -115,7 +130,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     {
         mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
     }
-    vec3 ro = vec3(0.0, 0.0, 2.5); // camera
+    vec3 ro = vec3(0.0, 0.0, 3.5); // camera
     //camera rotation
     ro.yz *= rot(mo.y * PI);
     ro.xz *= rot(-mo.x * TAU);
@@ -124,6 +139,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     float dist = dist_infin;
 
     vec3 b1 = vec3(0.0509, 0.2980, 0.4705), b2 = vec3(0.3764, 0.7529, 0.8784), bg = mix(b1, b2, vec3((1.0 - abs(fragCoord.x - iResolution.x / 2.) / iResolution.y * 2.) * fragCoord.y / iResolution.x));   
+    bg = vec3(1.);
     //antialiasing
     vec3 tot = vec3(0.0);
     for(int m = 0; m < AA; m++) for(int n = 0; n < AA; n++) {
@@ -144,14 +160,15 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             if(td < dist_infin) {
                 col = resColor;
                 vec3 nor = calcNormal(pos);
-                //col = calccolor(col, col, rd, light, light2, nor);
-                col = ccolor(col, rd, light, nor);
+                col = calccolor(col, col, rd, light, light2, nor);
+                //col = ccolor(col, rd, light, nor);
             }
             //==========================raymatch=============================
             tot += col;
         }
-    tot = sqrt(tot) / float(AA);
+    tot = tot / float(AA);
     //tot = tot / float(AA);
+    tot = ACESFilm(tot);
     //antialiasing
     fragColor = vec4(tot, 1.0);
 }

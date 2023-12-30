@@ -171,7 +171,7 @@ float sdCosN3(vec3 p, float a, float n) {
     if(d < d2)
         ro = L;
 
-    float z = p.z - 0.4 * ro * ro;
+    float z = p.z;// - 0.4 * ro * ro;
     d = sqrt(z * z + d * d);
     d *= .3;
     d -= 0.015;
@@ -384,13 +384,14 @@ float tani(float d1, float d2, float t) {
 }
 float map(in vec3 pos) {
     //return sdCeli2(pos);
-    return sdCosNp(pos, 1.0);
+    //return sdCosNp(pos, 1.0);
     //float d1 =   sdBacket(pos, .9, .4, 3.5, 9.); 
     //float d2 = sdCeli2(pos);
     //float d2 = sdLonLat(pos, 1.);
     //float d = tani(d1, d2, iTime/2.);
     //return d;
     //return sdCeli(pos);
+    return sdBacket(pos, .9, .4, 3.5, 9.); 
 
     //float d2 = sdCeli(-pos);
     //return min(d, d2);
@@ -405,7 +406,7 @@ float map(in vec3 pos) {
     //return sdCosN3(pos, 1.0, 2.2);
     //return sdCosN(pos, 1.0, 2.2);
 
-    //return sdBacket(pos, .9, .4, 3.5, 9.);
+    //return sdLonLat(pos, 1.0);
 
     /*
     float d = sdLonLat(pos, 1.0);
@@ -469,6 +470,21 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #endif
 */
 #define AA 1
+// IQ's vec2 to float hash.
+float hash21(vec3 p){  
+    return fract(sin(mod(dot(p, vec3(27.609, 57.583, 11.2345)), 6.2831853))*43758.5453); 
+}
+
+vec3 point(vec3 p) {
+    float f = atan(p.y, p.x);
+    float d = atan(length(p.xy), p.z);
+    float n = 200.; 
+    float m = 200.;
+    f = floor(f*n)/n;
+    d = floor(d*m)/m;
+    return vec3(sin(d)*cos(f), sin(d)*sin(f), cos(d));
+}
+
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, 1.0, 1.0)); //light
     vec3 light2 = normalize(vec3(0.0, 1.0, -1.0)); //light
@@ -495,14 +511,25 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
             vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
             vec3 col = vec3(0.0);
-
             HIT giper = giper3D(rota * ro, rota * rd);
-            if(giper.dist < dist) {
-                vec3 nor = rota_1 * giper.nor;
-                float dif = clamp(dot(nor, light), 0.2, 1.0);
-                float amb = 0.5 + 0.5 * dot(nor, light2);
-                col = vec3(0.2, 0.3, 0.4) * amb + vec3(0.85, 0.75, 0.65) * dif;
-            }
+             if(giper.dist < dist) {
+                    
+                  //float  ff = hash21(point(giper.pos));
+                  //if (ff > 0.9)
+                  {
+                    //col = vec3(1.);
+
+                    
+                    vec3 nor = rota_1 * giper.nor;
+                    float dif = clamp(dot(nor, light), 0.2, 1.0);
+                    float amb = 0.5 + 0.5 * dot(nor, light2);
+                    col = vec3(0.2, 0.3, 0.4) * amb + vec3(0.85, 0.75, 0.65) * dif;
+                    
+                  }   
+                    
+                    
+                }
+            
         // gamma        
             col = sqrt(col);
             tot += col;
