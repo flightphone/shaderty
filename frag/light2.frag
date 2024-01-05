@@ -20,7 +20,7 @@ uniform sampler2D u_tex1;
 
 #define PI  3.14159265359
 #define TAU 6.28318530718
-#define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
+
 
 // IQ's vec2 to float hash.
 float hash21(vec2 p){  
@@ -66,25 +66,27 @@ float sdCosN(vec2 p, float a, float n) {
     return d*0.3;
 }
 
+vec3 hsb2rgb( in vec3 c )
+{
+    vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),
+                             6.0)-3.0)-1.0,
+                     0.0,
+                     1.0 );
+    rgb = rgb*rgb*(3.0-2.0*rgb);
+    return (c.z * mix( vec3(1.0), rgb, c.y));
+}
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) 
 {
     vec3 col3 = vec3(1., 1., 0.75);
     vec3 col1 = vec3(0., 0., 0.3);
-    //col3 = pow(col3, vec3(.001));
     float np[3]; float lv[3]; float ep[3];
     np[0] = 200.; np[1] =  100.; np[2] = 50.; 
     lv[0] = 0.8; lv[1] = .9; lv[2] = .9; 
     ep[0] = 0.02; ep[1] = 0.05; ep[2] = 0.1; 
 
-    
-
     vec2 p = fragCoord / iResolution.y, c = vec2(iResolution.x/iResolution.y*0.5, 0.5), pc = p-c;
-
     vec3 tot = col1;
-
-    
-    //float r = iResolution.x/iResolution.y*0.45;
     float r = 0.5;
     float w = 1., v = 0.3, fi = mod(atan(pc.y, pc.x), TAU), head = w*iTime;
     float shift = mod((mod(head, TAU) - fi), TAU)/w;
@@ -93,29 +95,24 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
         fragColor = vec4(col1, 1.0);
         return;
     }
-    //float d = length(pc) - r;
-    //float pst = smoothstep(-0.01, 0., d) * smoothstep(0.01, 0., d);
-    float d = sdCosN(pc, r, 3.5);
-    float pst = smoothstep(0.002, 0., d);
-    pst *= exp(-shift);
-    tot = mix(tot, col3, pst);
-    
-    
+    float d = sdCosN(pc, r, 2.5);
     for (int i = 0; i < 3; i++)
     {
         float npp = np[i], level = lv[i], rd = 1./npp;  
         vec2 pp = floor(p*npp)/npp;
         if (d > -ep[i]*shift*v && d < ep[i]*shift*v)
-        if (hash21(pp) > level)
-        {
-            float pst = star(p, pp+rd*0.5, rd*.5);
-            pst *= exp(-shift);
-            tot = mix(tot, col3, pst);
-            
+        {float fil = hash21(pp);
+            if (fil > level)
+            {
+                float pst = star(p, pp+rd*0.5, rd*.5);
+                pst *= exp(-shift);
+                vec3 col = hsb2rgb(vec3(fract(fil*1000.)*3., 1., 2.));
+                tot = mix(tot, col, pst);
+                
+            }
         }
     }
-    //tot*=exp(-shift);
-        
+   
     
    
     
