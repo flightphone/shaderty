@@ -391,7 +391,7 @@ float map(in vec3 pos) {
     //float d = tani(d1, d2, iTime/2.);
     //return d;
     //return sdCeli(pos);
-    return sdBacket(pos, .9, .4, 3.5, 9.); 
+    //return sdBacket(pos, .9, .4, 3.5, 9.); 
 
     //float d2 = sdCeli(-pos);
     //return min(d, d2);

@@ -34,6 +34,15 @@ vec3 col1 = vec3(0.3764, 0.8196, 0.3725);
 vec3 col2 = vec3(0.8117, 0.1764, 0.8078);
 vec3 col4 = vec3(0.85, 0.75, 0.65);
 
+
+//https://iquilezles.org/articles/smin/
+// polynomial smooth min 1 (k=0.1)
+float smin(float a, float b, float k) {
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+
 //https://mathcurve.com/courbes2d/larme/larme.shtml
 float larme2(vec2 p, float a)
 {
@@ -75,15 +84,17 @@ float larme2(vec2 p, float a)
     }
     return d;
 }
-float larme(vec3 p, float a)
+float larme(vec3 p, float a, float zoom)
 {
     float l = length(p.xy);
-    float d = larme2(vec2(p.z, l), a);
-    return d*0.3 - 0.02;
+    float d = larme2(vec2(p.z, l), a)*0.3 - 0.02;
+    if (abs(d) > dist_infin*zoom)
+        d = dist_infin;
+    return d;
 }
 
 
-float sdBacket(vec3 p, float a, float b, float m, float n) {
+float sdBacket(vec3 p, float a, float b, float m, float n, float zoom) {
     float fi = atan(p.y, p.x); //aafi(p.xy)
     float w = 20.;
     for(float i = 0.; i < 10.; i++) {
@@ -93,8 +104,10 @@ float sdBacket(vec3 p, float a, float b, float m, float n) {
         float wt = abs(p.z - b * sin(n * t));
         w = min(w, wt);
     }
-    float r = length(vec2(length(p.xy) - a, w)) / 2.0;
-    return r - 0.03;
+    float r = length(vec2(length(p.xy) - a, w)) / 2.0 - 0.03;
+    if (abs(r) > dist_infin*zoom)
+        r = dist_infin;
+    return r;
 }
 
 float glzoom = 1.0;
@@ -267,18 +280,25 @@ float sdConePine(vec3 p, float a)
     return d;
 }
 
+float sdtorus(vec3 p, float r1, float r2, float zoom)
+{
+  float d = abs(length(vec2(length(p.xy) - r1, p.z)) - r2) - 0.03;
+  if (d > dist_infin*zoom)
+    d = dist_infin;
+  return d;  
+}
 
 
 
 float map(vec3 p) {
     float d = dist_infin;
     float glzoom2 = 1.0 - glzoom;
-    p.x += glzoom-glzoom2;
-    if (glzoom > 0.01)
-        d = min(d, sdLonLat(p, 0.8*glzoom)/*sdEggBox(p, -glzoom, glzoom)larme(p, 0.8*glzoom) sdBox3(p, vec2(glzoom, glzoom), 0.2*glzoom, 9.)larme(vec3(p.x+glzoom-glzoom2, p.y, p.z), glzoom)*/);
+    //p.x += glzoom-glzoom2;
+    //if (glzoom > 0.01)
+        d = smin(d,  sdBacket(p, .9, .4, 3.5, 9., glzoom), 0.1/*sdLonLat(p, 0.8*glzoom)sdEggBox(p, -glzoom, glzoom) sdBox3(p, vec2(glzoom, glzoom), 0.2*glzoom, 9.)larme(p, glzoom)*/);
     
-    if (glzoom2 > 0.01)
-        d = min(d, sdEggBox(p, -glzoom2, glzoom2)/*sdConePine(vec3(p.x+glzoom-glzoom2, p.y, p.z), 2.*glzoom2) sdEggBox(p, -glzoom2, glzoom2)*//*sdHexagram3(p, 0.15*glzoom2, 0.55*glzoom2)*/);     
+    //if (glzoom2 > 0.01)
+        d = smin(d, larme(p, 1., glzoom2), 0.1/*sdtorus(p, 0.8, 0.2, glzoom2)sdEggBox(p, -glzoom2, glzoom2)sdConePine(p, 2.*glzoom2) sdEggBox(p, -glzoom2, glzoom2)*//*sdHexagram3(p, 0.15*glzoom2, 0.55*glzoom2)*/);     
     return d;
 }
 
@@ -320,17 +340,17 @@ vec3 hsb2rgb( in vec3 c )
 }
 float glz()
 {
-    float t = iTime/2.;
+    float t = iTime/5.;
     float st = mod(floor(t), 4.);
     float res;
     if (st == 0.)
         res = 1.;
     if (st == 1.)    
-        res = cos(fract(t)*PI/2.);
+        res = (1.- fract(t))*(1.- fract(t));//cos(fract(t)*PI/2.);
     if (st == 2.)    
         res = 0.;
     if (st == 3.)
-        res = sin(fract(t)*PI/2.);    
+        res = fract(t)*fract(t);////sin(fract(t)*PI/2.);    
     return res;    
 }
 
