@@ -295,10 +295,11 @@ float map(vec3 p) {
     float glzoom2 = 1.0 - glzoom;
     //p.x += glzoom-glzoom2;
     //if (glzoom > 0.01)
-        d = smin(d,  sdBacket(p, .9, .4, 3.5, 9., glzoom), 0.1/*sdLonLat(p, 0.8*glzoom)sdEggBox(p, -glzoom, glzoom) sdBox3(p, vec2(glzoom, glzoom), 0.2*glzoom, 9.)larme(p, glzoom)*/);
+        //d = smin(d,  sdBacket(p, .9, .4, 3.5, 9., glzoom), 0.1/*sdLonLat(p, 0.8*glzoom)sdEggBox(p, -glzoom, glzoom) sdBox3(p, vec2(glzoom, glzoom), 0.2*glzoom, 9.)larme(p, glzoom)*/);
     
     //if (glzoom2 > 0.01)
-        d = smin(d, larme(p, 1., glzoom2), 0.1/*sdtorus(p, 0.8, 0.2, glzoom2)sdEggBox(p, -glzoom2, glzoom2)sdConePine(p, 2.*glzoom2) sdEggBox(p, -glzoom2, glzoom2)*//*sdHexagram3(p, 0.15*glzoom2, 0.55*glzoom2)*/);     
+        //d = smin(d, larme(p, 1., glzoom2), 0.1/*sdtorus(p, 0.8, 0.2, glzoom2)sdEggBox(p, -glzoom2, glzoom2)sdConePine(p, 2.*glzoom2) sdEggBox(p, -glzoom2, glzoom2)*//*sdHexagram3(p, 0.15*glzoom2, 0.55*glzoom2)*/);     
+    d = larme(p, 1., 1.);
     return d;
 }
 
@@ -323,8 +324,9 @@ float hash21(vec3 p){
     return fract(sin(mod(dot(normalize(p), vec3(27.609, 57.583, 11.2345)), 6.2831853))*43758.5453); 
 }
 
+
 float npp = 200.;
-float level = 0.95;
+float level = 0.98;
 vec3 point(vec3 p) {
     return floor(p*npp)/npp;
 }

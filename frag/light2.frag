@@ -63,7 +63,7 @@ float sdCosN(vec2 p, float a, float n) {
     }
     
     float d = min(d1, d2);
-    return d*0.3;
+    return d;
 }
 
 vec3 hsb2rgb( in vec3 c )
@@ -78,53 +78,51 @@ vec3 hsb2rgb( in vec3 c )
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) 
 {
-    vec3 col3 = vec3(1., 1., 0.75);
+   /*
+    vec3 col1 = vec3(0., 0., 0.15);
+    float np[3]; float lv[3]; float ep[3];
+    np[0] = 200.; np[1] =  100.; np[2] = 50.; 
+    lv[0] = 0.7; lv[1] = .6; lv[2] = .5; 
+    ep[0] = 0.1; ep[1] = 0.05; ep[2] = 0.01; 
+   */
     vec3 col1 = vec3(0., 0., 0.3);
     float np[3]; float lv[3]; float ep[3];
     np[0] = 200.; np[1] =  100.; np[2] = 50.; 
     lv[0] = 0.8; lv[1] = .9; lv[2] = .9; 
     ep[0] = 0.02; ep[1] = 0.05; ep[2] = 0.1; 
+ 
 
     vec2 p = fragCoord / iResolution.y, c = vec2(iResolution.x/iResolution.y*0.5, 0.5), pc = p-c;
     vec3 tot = col1;
-    float r = 0.5;
-    float w = 1., v = 0.3, fi = mod(atan(pc.y, pc.x), TAU), head = w*iTime;
+    float r = 0.8;
+    float w = 1., v = 0.8, fi = mod(atan(pc.y, pc.x), TAU), head = w*iTime;
     float shift = mod((mod(head, TAU) - fi), TAU)/w;
     if (head < TAU && head < fi)
     {
         fragColor = vec4(col1, 1.0);
         return;
     }
-    float d = sdCosN(pc, r, 2.5);
+    float d = sdCosN(pc, r, 2.);
     for (int i = 0; i < 3; i++)
     {
         float npp = np[i], level = lv[i], rd = 1./npp;  
         vec2 pp = floor(p*npp)/npp;
-        if (d > -ep[i]*shift*v && d < ep[i]*shift*v)
-        {float fil = hash21(pp);
+        //d > -ep[i]*shift*v && 
+        if (d < ep[i]*shift*v)
+        {
+            float fil = hash21(pp);
             if (fil > level)
             {
                 float pst = star(p, pp+rd*0.5, rd*.5);
-                pst *= exp(-shift);
+                pst *= exp(-shift*0.7)*(1.+cos(shift*TAU*2. + fract(fil*500.)*3.*PI))/2.;
                 vec3 col = hsb2rgb(vec3(fract(fil*1000.)*3., 1., 2.));
                 tot = mix(tot, col, pst);
                 
             }
         }
     }
-   
-    
-   
-    
-    
-    //float pst = smoothstep(-0.01, 0., d) * smoothstep(0.01, 0., d);
-    //float pst = star(p, vec2(0.0), r);
-    //float pst = star(p, vec2(0.0), 0.3);
-    //tot = mix(tot, vec3(1.), pst);
-    
+  
     fragColor = vec4(tot, 1.0);
-
-    
 }
     
 /////=====================================================================================
