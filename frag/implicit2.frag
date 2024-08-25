@@ -16,7 +16,12 @@ uniform sampler2D u_tex1;
 #define texture texture2D
 
 /////=====================================================================================
-
+//Collection of implicit surfaces. implicit surfaces, raytracing, binary search
+/*
+Rendering implicit surfaces. Using raytracing and binary searchy. 
+Here, these same surfaces are obtained by creating grids using an algorithm 
+3D Marching Cubes: https://flightphone.github.io/paramgeometry.html
+*/
 #define PI  3.14159265359
 #define TAU 6.28318530718
 #define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
@@ -47,51 +52,23 @@ float heart(vec3 p)
         return a*a*a - (x*x + 0.1125*y*y)*z*z*z;
     }    
 
-/*
-float riemann(vec3 p) {
-    float x = p.x, y = p.y, z = p.z;
-    float a = 1.;
-    float d = (x * x + y * y - a * a) * z - a * x;
-    return d;
-}
-*/
-/*
-float holed2(vec3 p) {
-    float x = p.x, y = p.y, z = p.z;
-    float x2 = x * x, y2 = y * y, z2 = z * z;
-    float u = (x2) * (1. - x2) - y2;
-    return u * u + z2 - 0.01;
-}
-*/
 
 float kummerj(vec3 p) {
+        p.xz*=rot(PI/4.);
+        p.yx*=rot(PI/2.);
         float x = p.x, y = p.y, z = p.z;
         return x * x * x * x + y * y * y * y + z * z * z * z - 5. * (x * x * y * y + y * y * z * z + z * z * x * x) + 56. * x * y * z -
             20. * (x * x + y * y + z * z) + 16.;
         
     }
-/*
-float gayley(vec3 p) {
-    //https://mathcurve.com/surfaces.gb/cayley/cayley.shtml
-    float x = p.x, y = p.y, z = p.z,  k = 2., a = 1.;
-    return ((x + y + z - a) * (x * y + y * z + z * x) - k * x * y * z);
-}
-*/
-/*
-float goursat(vec3 p) {
-    //https://mathcurve.com/surfaces.gb/goursat/goursat.shtml
-    float x = p.x, y = p.y, z = p.z; 
-    float a = 1.;
-    return (2. * (x * x * y * y + x * x * z * z + z * z * y * y) - a * a * (x * x + y * y + z * z) - a * a * a * a);
-}
-*/
+
 float gyroide(vec3 p) {
     float x = p.x, y = p.y, z = p.z; 
     return cos(x) * sin(y) + cos(y) * sin(z) + cos(z) * sin(x);
 }
 
 float isf(vec3 p) {
-   float x = p.x, y = p.y, z = p.z; 
+   float x = p.x, y = -p.z, z = p.y; 
    return (2. * y * (y * y - 3. * x * x) * (1. - z * z) + (x * x + y * y) * (x * x + y * y) - (9. * z * z - 1.) * (1. - z * z));// IMPLICIT SURFACE Function
 }
 float desimp(vec3 p)
@@ -99,19 +76,11 @@ float desimp(vec3 p)
     float res = p.x*p.x + p.y*p.y + p.z*p.z + sin(4.*p.x) + sin(4.*p.y) + sin(4.*p.z) - 1.11;
     return (res);
 }
-/*
-float  algebraic(vec3 p)
-    {
-        float x=p.x*p.x, y=p.y*p.y, z=p.z*p.z,a = 1.*1., r = 0.005;
-        return ((x + y - a)*(x + y - a) + (z - 1.)*(z - 1.)) *
-                ((z + y - a)*(z + y - a) + (x - 1.)*(x - 1.)) *
-                ((x + z - a)*(x + z - a) + (y - 1.)*(y - 1.)) - r;
-
-    }
-*/
 
 float cassinian(vec3 p) {
-    
+
+        p.xy*=rot(PI/4.);
+        p.yz*=rot(PI/4.);
         float res = 1., b = 4.15, h0 = 3., h1 = 5.0, r = (h0 + h1)/2. - (h1 - h0)/2.*cos(2.*iTime);
         
         for (float i = 0.; i < 2.; i++)
@@ -125,26 +94,16 @@ float cassinian(vec3 p) {
 float map(vec3 p) {
     if (csurf == 0.)
         return desimp(p);
-    //if (csurf == 1.)
-    //    return algebraic(p);
     if (csurf == 1.)
         return isf(p);
     if (csurf == 2.)
         return cassinian(p);
     if (csurf == 3.)
         return gyroide(p);
-    //if (csurf == 5.)
-    //    return goursat(p);
-    //if (csurf == 6.)
-    //    return gayley(p);
     if (csurf == 4.)
         return potential(p);
     if (csurf == 5.)
         return kummerj(p);
-    //if (csurf == 9.)
-    //    return holed2(p);
-    //if (csurf == 10.)
-    //    return riemann(p);  
     if (csurf == 6.)
         return heart(p);  
 }
@@ -161,7 +120,7 @@ vec3 calcNormal(in vec3 p) {
 
 vec3 getPoint(vec3 a, vec3 b, float v0, float v1) {
             vec3 m;
-            //binary find with  n iterations, n = newton
+            //binary search with  n iterations, n = newton
             for (int i = 0; i < newton; i++) {
                 m = (a+b)*0.5;
                 float v = map(m);
@@ -253,21 +212,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     
     csurf = mod(floor(iTime/6.) , 7.);
     //csurf  = 1.;
-    float hh = 5.;
+    float hh = 2.;
     if (csurf == 0.)
     {
         dist_infin = 2.2;
-        hh = 4.;
+        hh = 6.;
         //desimp(p);
     }  
-    /*  
-    if (csurf == 1.)
-    {
-        dist_infin = 2.;
-        hh = 4.5;
-        //algebraic(p);
-    }    
-    */    
+
     if (csurf == 1.)
     {
         dist_infin = 2.;
@@ -284,26 +236,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         
     if (csurf == 3.)
     {
-        dist_infin = 14.;
-        hh = 30.;
+        dist_infin = PI*6.;
+        hh = PI*12.;
         //gyroide(p);
     }    
-    /*    
-    if (csurf == 5.)
-    {
-        dist_infin = 3.2;
-        hh = 7.;
-        //goursat(p);
-    } 
-    */   
-    /*    
-    if (csurf == 6.)
-    {
-        dist_infin = 3.2;
-        hh = 7.;
-        //gayley(p);
-    }    
-    */   
+
     if (csurf == 4.)
     {
         initQ();
@@ -318,22 +255,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         hh = 15.;
         //kummerj(p); 
     }
-    /*    
-    if (csurf == 9.)
-    {
-        dist_infin = 1.2;
-        hh = 2.4;
-        //holed2
-    } 
-    */  
-    /*
-    if (csurf == 10.)
-    {
-        dist_infin = 4.;
-        hh = 8.;
-        //riemann
-    } 
-    */  
+
     if (csurf == 6.)
     {
         dist_infin = 1.8;
@@ -343,15 +265,15 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
     vec3 light2 = normalize(vec3(0.0, -1.0, 2.5)); //light
-    vec2 mo = vec2(0.0, 0.0);
+    vec2 mo = 1.5*cos(0.5*iTime + vec2(0,11));
     //if  (iMouse.z > 0.0)
     {
-        mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
+        //mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
     }
     vec3 ro = vec3(0.0, 0.0, hh ); // camera
     //camera rotation
-    ro.yz *= rot(mo.y * PI);
-    ro.xz *= rot(-mo.x * TAU);
+    ro.yz *= rot(mo.y);
+    ro.xz *= rot(-mo.x - 1.57);
 
     const float fl = 1.5; // focal length
     float dist = dist_infin;
@@ -371,13 +293,20 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
             vec3 col = bg * bg; // background  
             
-            //================isSphere==================
+            
+            //STEP 1. Calculating bounding sphere
             float d = length(cross(ro, rd));
             if (d >= dist)
             {
                  tot += col;
                  continue;
             }
+            /*
+            STEP 2.
+            ray tracing inside the bounding sphere, 
+            searching for a segment with different signs of the function value 
+            at the ends of the segment
+            */
             float td = abs(dot(ro, rd));
             d = sqrt(dist*dist - d*d);
             vec3 pos0 = ro + rd * (td - d);
@@ -390,8 +319,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 float val1 = map(pos1);
                 if (sign(val0)*sign(val1) <= 0.)
                 {
+                    //different signs of the function value  at the ends of the segment
+                    //STEP 3. binary search to clarify the intersection of a ray with a surface.
                     col = col1;
-                    //bisect
                     pos = getPoint(pos, pos1, val0, val1);
                     vec3 nor = calcNormal(pos);
                     col = calccolor(col, col2, -rd, light, light2, nor);
