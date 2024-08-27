@@ -25,70 +25,116 @@ Here, these same surfaces are obtained by creating grids using an algorithm
 #define PI  3.14159265359
 #define TAU 6.28318530718
 #define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
-#define nn 128.
+#define nn 64.
 #define newton 10
 
 float dist_infin =2.2;
-
-
-float dot2( in vec2 v ) { return dot(v,v); }
-float dot2( in vec3 v ) { return dot(v,v); }
-float ndot( in vec2 a, in vec2 b ) { return a.x*b.x - a.y*b.y; }
-
-//https://iquilezles.org/articles/distfunctions/
-float sdSphere( vec3 p, float s )
-{
-  return length(p)-s;
+float csurf = 0.;
+mat3 rotateX(float f) {
+    return mat3(vec3(1.0, 0.0, 0.0), vec3(0.0, cos(f), -sin(f)), vec3(.0, sin(f), cos(f)));
+}
+mat3 rotateY(float f) {
+    return mat3(vec3(cos(f), 0.0, sin(f)), vec3(0.0, 1.0, 0.0), vec3(-sin(f), 0.0, cos(f)));
 }
 
-float sdEllipsoid( vec3 p, vec3 r )
+float sdRound(vec3 p, float r, float f)
 {
-  float k0 = length(p/r);
-  float k1 = length(p/(r*r));
-  return k0*(k0-1.0)/k1;
+    float d = abs(length(p.xy) - r*cos(f));
+    d = length(vec2(p.z-r*sin(f), d));
+    return d;
+}
+//https://www.shadertoy.com/view/DtdBR4
+float sinewave(vec3 p, float a, float b, float m, float n)
+{
+    float fi = atan(p.y, p.x); //aafi(p.xy)
+    float w = dist_infin;
+    for (float i = 0.; i < 10.; i++ )
+    {
+        if (mod(i,m) == 0.0 && i > 0.)
+            break;
+        float t = (fi + TAU*i)/m;    
+        float wt = abs(p.z - b*sin(n*t));
+        w = min(w, wt);
+    }
+    float r = length(vec2(length(p.xy) - a, w))/2.0;
+    return r - 0.03;
 }
 
-float sdCappedCone( vec3 p, float h, float r1, float r2 )
+//https://www.shadertoy.com/view/mttfzl
+float sdLonLat(vec3 p, float r)
 {
-  vec2 q = vec2( length(p.xy), p.z );
-  vec2 k1 = vec2(r2,h);
-  vec2 k2 = vec2(r2-r1,2.0*h);
-  vec2 ca = vec2(q.x-min(q.x,(q.y<0.0)?r1:r2), abs(q.y)-h);
-  vec2 cb = q - k1 + k2*clamp( dot(k1-q,k2)/dot2(k2), 0.0, 1.0 );
-  float s = (cb.x<0.0 && ca.y<0.0) ? -1.0 : 1.0;
-  return s*sqrt( min(dot2(ca),dot2(cb)) );
+        #define ll 20.
+        float fi = atan(p.x, p.y);
+        fi += step(p.y, 0.0)*TAU;
+        float ln = floor(fi/TAU*ll);
+        float l1 = ln * TAU/ll;
+        float l2 = l1 + TAU/ll;
+        float d = min(
+            sdRound(rotateX(l1)*rotateY(PI/2.)*p, r, 0.), 
+            sdRound(rotateX(l2)*rotateY(PI/2.)*p, r, 0.));
+        
+        fi = atan(p.z, length(p.xy));
+        float mm = ll/4.0;
+        ln = floor(abs(fi)/PI*2.0*mm);
+        l1 = ln*PI/2.0/mm;
+        l2 = l1 + PI/2.0/mm;
+        float d2 = min(sdRound(p, r, l1*sign(p.z)), sdRound(p, r, l2*sign(p.z)));
+        d = min(d2, d);
+        return d - 0.05;
 }
 
-float sdRoundedCylinder( vec3 p, float ra, float rb, float h )
-{
-  vec2 d = vec2( length(p.xy)-2.0*ra+rb, abs(p.z) - h );
-  return min(max(d.x,d.y),0.0) + length(max(d,0.0)) - rb;
-}
 
-//https://iquilezles.org/articles/smin/
-// polynomial smooth min 1 (k=0.1)
-float smin( float a, float b, float k )
-{
-    float h = clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 );
-    return mix( b, a, h ) - k*h*(1.0-h);
+float glz() {
+    float t = iTime / 4.;
+    float st = mod(floor(t), 4.);
+    float res;
+    if(st == 0.)
+        res = 1.;
+    if(st == 1.)
+        res = cos(fract(t) * PI / 2.);//(1.- fract(t))*(1.- fract(t));
+    if(st == 2.)
+        res = 0.;
+    if(st == 3.)
+        res = sin(fract(t) * PI / 2.); //fract(t)*fract(t);   
+    return res;
 }
-
-float map( in vec3 pos )
+vec3 S = vec3(3,2,0); 
+float knot(vec3 q) {
+        q = vec3( length(q.xz)-.5, q.y, atan(q.z,q.x) ), // cylindrical coordinates
+        q = vec3( length(q.xy), atan(q.y,q.x), q.z );             // torus coordinates
+        return length( vec2(q.x-.2, ( mod(S.x*q.z-S.y*q.y,6.28)-3.14 ) /16. )) - 0.1; // solenoïd
+}
+float sdTorus( vec3 p)
 {
-    vec3 pos1 = pos - vec3(0., 0., 0.3);
-    float d1 = sdSphere(pos1 - vec3(0., 0., -.85), 0.2);
-    float d2 = sdEllipsoid(pos1 - vec3(0., 0.0, -0.65), vec3(0.3, 0.3, 0.05));
-    d1 = smin(d1, d2, 0.02);
-    d2 = sdCappedCone(pos1-vec3(0.0, 0.0, -0.4), 0.2, 0.15, 0.22);
-    //d1 = smin(d1, d2, 0.01);
-    d1 = smin(d1, d2, 0.02);
-    d2 = sdRoundedCylinder(pos1 - vec3(0.0, 0.0, 0.0), 0.17, 0.05, 0.15);
-    d1 = min(d1, d2);
-    d2 = sdEllipsoid(pos1 - vec3(0., 0.0, 0.), vec3(0.5, 0.5, 0.2));
-    d1 = smin(d1, d2, 0.05);
-    d2 = sdRoundedCylinder(pos1 - vec3(0.0, 0.0, 0.17), 0.25, 0.01, 0.02);
-    d1 = smin(d1, d2, 0.02);
-    return d1;
+  vec2 t = vec2(0.6, 0.15);
+  float d = (p.x*p.x + p.y*p.y + p.z*p.z + t.x*t.x - t.y*t.y);
+  return d*d - 4.*t.x*t.x*(p.x*p.x + p.y*p.y); 
+  //vec2 q = vec2(length(p.xz)-t.x,p.y);
+  //return length(q)-t.y;
+}
+float map( in vec3 p )
+{
+    //return knot(p.xzy);
+    //return sdTorus(p);
+  if (csurf == 0.0)
+        return knot(p.xzy);
+    else
+    if (csurf == 1.0)
+        return sdTorus(p);
+    else       
+        return sdTorus(p)*csurf + (1.-csurf)*knot(p.xzy);
+
+    /*
+    if (csurf == 0.0)
+        return sinewave(p, .9, .4, 3.5, 9.);
+    else
+    if (csurf == 1.0)
+        return sdLonLat(p, 1.0);
+    else       
+        return sdLonLat(p, 1.0)*csurf + (1.-csurf)*sinewave(p, .9, .4, 3.5, 9.);
+    */    
+    //return pown(pos);
+    //return queen(pos);
 }
 
 
@@ -127,28 +173,6 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
     return normalize(i);
 }
 
-vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 nor) {
-    vec3 col = col_in;
-    float d = dot(rd, nor);
-    if(d < 0.0)
-        col = backcol;
-
-    float difu1 = dot(nor, light1);
-    float difu2 = dot(nor, light2);
-    float difu = max(difu1, difu2);
-   
-
-    vec3 R1 = reflect (light1, nor);
-    vec3 R2 = reflect (light2, nor);
-    float shininess=20.0;
-    float specular1    =  pow(max(dot(R1, rd), 0.), shininess);
-    float specular2    =  pow(max(dot(R2, rd), 0.), shininess);
-    float specular = max(specular1, specular2);
-    col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
-    // gamma
-    col = pow( col, vec3(0.4545) );  
-    return col;
-}
 
 /*
 #if HW_PERFORMANCE==0
@@ -160,13 +184,13 @@ vec3 calccolor(vec3 col_in, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec
 #define AA 1
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     
-    //csurf = glz();
+    csurf = glz();
     dist_infin = 1.2;
-    float    hh =3.5;
+    float    hh =1.6;
         
-    vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
+    vec3 light = normalize(vec3(0.0, 1.0, 1.0)); //light
     vec3 light2 = normalize(vec3(0.0, -1.0, 2.5)); //light
-    vec2 mo = 1.5*cos(1.5*iTime + vec2(0,11));
+    vec2 mo = 1.5*cos(0.3*iTime + vec2(0,11));
     //if  (iMouse.z > 0.0)
     {
         mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
@@ -174,17 +198,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 ro = vec3(0.0, 0.0, hh ); // camera
     //camera rotation
     ro.yz *= rot(mo.y);
-    ro.xz *= rot(-mo.x - 1.57);
+    ro.xz *= rot(-mo.x-1.57);
 
     const float fl = 1.5; // focal length
     float dist = dist_infin;
 
-    vec3 b1 = vec3(0.23529411764705882, 0.4235294117647059, 0.7725490196078432), b2 = vec3(0.3686274509803922, 0.5725490196078431, 0.8941176470588236);
-    vec3 bg = 2.0*mix(b2, b1*b1, 0.);
-    vec3 col1 = vec3(0.7304607400847158,0.5906188409113381,0.3005437944049895);
-    vec3 col2 = vec3(0.7230551289161951, 0.0060488330203860696, 0.0060488330203860696);
- 
-    
     //antialiasing
     vec3 tot = vec3(0.0);
     for(int m = 0; m < AA; m++) 
@@ -192,14 +210,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             vec2 o = vec2(float(m), float(n)) / float(AA) - 0.5;
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
             vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
-            vec3 col = bg * bg; // background  
+            vec3 col = vec3(0.0);
             
             
             //STEP 1. Calculating bounding sphere
             float d = length(cross(ro, rd));
             if (d >= dist)
             {
-                 tot += col;
                  continue;
             }
             /*
@@ -222,15 +239,19 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 {
                     //different signs of the function value  at the ends of the segment
                     //STEP 3. binary search to clarify the intersection of a ray with a surface.
-                    col = col1;
+                    
                     pos = getPoint(pos, pos1, val0, val1);
                     vec3 nor = calcNormal(pos);
-                    col = calccolor(col, col2, -rd, light, light2, nor);
+                    float dif = clamp( dot(nor,light), 0.2, 1.0 );
+                    float amb = 0.5 + 0.5*dot(nor,light2);
+                    col = vec3(0.2,0.3,0.4)*amb + vec3(0.85,0.75,0.65)*dif;
                     break;
                 }
                 val0 = val1;
                 pos = pos1;
             }
+            // gamma        
+            col = sqrt( col );
             tot += col;
         }
     tot = tot / float(AA)/ float(AA);

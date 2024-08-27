@@ -156,7 +156,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 mo = 1.5*cos(1.5*iTime + vec2(0,11));
     //if  (iMouse.z > 0.0)
     {
-        //mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
+        mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
     }
     vec3 ro = vec3(0.0, 0.0, hh ); // camera
     //camera rotation

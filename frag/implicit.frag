@@ -343,15 +343,16 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
     vec3 light2 = normalize(vec3(0.0, -1.0, 2.5)); //light
-    vec2 mo = vec2(0.0, 0.0);
+    //vec2 mo = vec2(0.0, 0.0);
+    vec2 mo = 1.5*cos(0.5*iTime + vec2(0,11));
     //if  (iMouse.z > 0.0)
     {
         mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
     }
     vec3 ro = vec3(0.0, 0.0, hh ); // camera
     //camera rotation
-    ro.yz *= rot(mo.y * PI);
-    ro.xz *= rot(-mo.x * TAU);
+    ro.yz *= rot(mo.y);
+    ro.xz *= rot(-mo.x - 1.57);
 
     const float fl = 1.5; // focal length
     float dist = dist_infin;
