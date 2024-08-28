@@ -383,7 +383,7 @@ float tani(float d1, float d2, float t) {
     }
 }
 float map(in vec3 pos) {
-    //return sdCeli2(pos);
+    return sdCeli2(pos);
     //return sdCosNp(pos, 1.0);
     //float d1 =   sdBacket(pos, .9, .4, 3.5, 9.); 
     //float d2 = sdCeli2(pos);
