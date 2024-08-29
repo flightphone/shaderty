@@ -26,10 +26,15 @@ Here, these same surfaces are obtained by creating grids using an algorithm
 #define TAU 6.28318530718
 #define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
 #define nn 64.
-#define newton 5
+#define newton 6
 float csurf = 0.;
 float scale = 10.;
+float npp = 60.;
+float level = 0.9;
 
+vec3 point(vec3 p) {
+    return floor(p*npp)/npp;
+}
 
 
 float glz() {
@@ -67,6 +72,10 @@ float rottime()
     
 }
 
+float hesh (vec3 p) {
+    return fract(sin(dot(p, vec3(127.1,311.7, 74.7))) * 43758.5453123);
+}
+
 float isf(vec3 p) {
     float x = p.x, y = -p.z, z = p.y;
     return (2. * y * (y * y - 3. * x * x) * (1. - z * z) + (x * x + y * y) * (x * x + y * y) - (9. * z * z - 1.) * (1. - z * z));// IMPLICIT SURFACE Function
@@ -98,6 +107,11 @@ float plane(vec3 p)
     return dot(p, vec3(0., 0., 1.));
 }
 
+float sphere2(vec3 p)
+{
+    return length(p-vec3(0., 0., .5)) - 0.6;
+}
+
 
 float gyroide(vec3 p) {
     float x = p.x*scale, y = p.y*scale, z = p.z*scale; 
@@ -124,22 +138,23 @@ float combo(vec3 p)
 {
     //scale = 10.;
     if (csurf == 0.0)
-        return gyroide(p);
+        return eggbox(p);
     else
     if (csurf == 1.0)
-        return eggbox(p);
+        return sphere2(p);
     else       
-        return mix(gyroide(p), eggbox(p), csurf);
+        return mix( eggbox(p), sphere2(p), csurf);
 }
 
 float map(vec3 p) {
-    //return isf(p);
+    return isf(p);
     //return capsule(p);
     //return sphere(p);
     //return gyroide2(p);
-    //return eggbox2(p);
-    return combo(p);
+    //return eggbox(p);
+    //return combo(p);
     //return gyroide(p);
+    //return sphere2(p)*eggbox(p) - 0.01;
     
     
     
@@ -244,6 +259,17 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                     //different signs of the function value  at the ends of the segment
                     //STEP 3. binary search to clarify the intersection of a ray with a surface.
                     pos = getPoint(pos, pos1, val0, val1);
+                    //points
+                    vec3 pp = point(pos);
+                    float fil = hesh(pp);
+                    if (fil > level)
+                    {
+                        col = vec3(1.);
+                        break;
+                    }
+                    
+                    
+                    /*
                     vec3 nor = calcNormal(pos);
                     col = col2;
                     if(dot(rd, nor) < 0.0)
@@ -254,6 +280,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                     col = col * (col * clamp(difu, 0., 1.0) + 0.5) + vec3(.5) * specular * specular;
                     col = sqrt(col);
                     break;
+                    */
                 }
                 val0 = val1;
                 pos = pos1;
