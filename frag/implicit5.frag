@@ -76,7 +76,7 @@ float isf(vec3 p) {
 
 float capsule(vec3 p)
 {
-    float h = 1.8;
+    float h = 1.5;
     float x = p.x, y = p.y, z = 0.;
     if (p.z > h)
         z = p.z - h;
@@ -87,10 +87,49 @@ float capsule(vec3 p)
 
 }
 
+float capsule2(vec3 p)
+{
+    float h = 1.5;
+    float x = p.x, y = p.y, z = 0.;
+    if (p.z > h)
+        z = p.z - h;
+    if (p.z < -h)
+        z = p.z + h; 
+
+    float a = length(p - vec3(0., 1., 0.));
+    return 1./(x*x + y*y + z*z) - 1./0.2/0.2 + 20./a;       
+
+}
+float hyper(vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z;
+    return pow(x, 2./3.) + pow(y, 2./3.) + pow(z, 2./3.) - 1.;
+}
+
+float tooth(vec3 p)
+{
+     float x = p.x*p.x, y = p.y*p.y, z = p.z*p.z; 
+     return x*x + y*y + z*z - (x+y+z);
+}
+float hant(vec3 p)
+{
+     float x = p.x, y = p.y, z = p.z; 
+     float a = x*x+y*y+z*z-13.;
+     float b = 3.*x*x + y*y - 4.*z*z - 12.;
+     return 4.*a*a*a + 27.*b*b;
+}
+vec2 lonlat (vec3 p)
+{
+    
+    float lon = atan(p.y, p.x)/2.0;
+    float lat = atan(length(p.xy), p.z);
+    return vec2(1.0-lon, lat);
+}
 float sphere(vec3 p) {
     float x = p.x, y = p.y, z = p.z;
     float r = 1.5;
-    return (x * x + y * y + z * z - r*r + 0.06*(sin(35.*x)+sin(20.*y)+sin(25.*z)));
+    vec2 ll = lonlat(p);
+    return (x * x + y * y + z * z - r*r + 0.4*(sin(20.*ll.x)+sin(20.*ll.y)));
 }
 
 float plane(vec3 p)
@@ -116,30 +155,205 @@ float eggbox2(vec3 p)
 
 float gyroide2(vec3 p)
 {
-    scale = 5.;
-    return gyroide(p)*(gyroide(p)) - 0.3;
+    scale = 6.;
+    return gyroide(p)*(gyroide(p)) - 0.1;
 }
 
+float sphere3(vec3 p)
+{
+     return min(sphere(p),capsule(p));
+    //return sphere(p);
+     //return sphere(p) * capsule(p) - 0.01;
+}
+
+float sphere2(vec3 p)
+{
+    return length(p-vec3(0., 0., .5)) - 0.6;
+}
+
+
+
+vec3 knot(float t)
+{
+    return vec3(sin(t) + 2.*sin(2.*t)-0.1, 
+    cos(t) - 2.*cos(2.*t), sin(3.*t)-0.1);
+}
+
+vec3 curve(float z, float s)
+{
+    float h = 1.;
+    z = clamp(z, -h, h);
+    float t = asin(z)/3. + s;
+    return knot(t);
+    
+    //
+}
+
+vec3 curve2(float z, float s)
+{
+    float h = 1.;
+    z = clamp(z, -h, h);
+    float t = (PI - asin(z))/3. + s;
+    return knot(t);
+    //
+}
+
+vec3 curve0(float z)
+{
+    float h = 2.1;
+    z = clamp(z, -h, h);
+    return vec3(0.5*cos(z*PI/2.), 0.5*sin(z*PI/2.), z);
+    //
+}
+float sline0(vec3 p)
+{
+    float res = 1.;
+    vec3 a = curve0(p.z);
+    return  (length(p-a) - 0.3);
+}
+float sline(vec3 p)
+{
+    
+    float res = 1., d = 0.5;
+    vec3 a = curve(p.z, 0.);
+    res *=  (d*length(p-a) - 0.2);
+    a = curve(p.z, TAU/3.);
+    res *= (d*length(p-a) - 0.2);
+    a = curve(p.z, 2.*TAU/3.);
+    res *= (d*length(p-a) - 0.2);
+    a = curve2(p.z, 0.);
+    res *= (d*length(p-a) - 0.2);
+    a = curve2(p.z, TAU/3.);
+    res *= (d*length(p-a) - 0.2);
+    a = curve2(p.z, 2.0*TAU/3.);
+    res *= (d*length(p-a) - 0.2);
+    
+    
+    return res;
+}
+
+float floo(vec3 p)
+{
+    return sphere(p) * capsule(p) - 0.01;
+}
 float combo(vec3 p)
 {
     //scale = 10.;
     if (csurf == 0.0)
-        return gyroide(p);
+        return sphere3(p);
     else
     if (csurf == 1.0)
         return eggbox(p);
     else       
-        return mix(gyroide(p), eggbox(p), csurf);
+        return mix(sphere3(p), eggbox(p), csurf);
 }
 
+float zin(vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z, a = 1.;
+    return z*(x*x - y*y) - 2.*a*x*y;
+}
+
+float digdong(vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z, a = 2.;
+    //z = clamp(z, 0., 10.);
+    return (x*x + y*y)*2.5 - (a-z)*z*z;
+}
+
+float umb(vec3 p)
+{
+     float x = p.x, y = p.y, z = p.z, a = 2.;
+    return x*x - z*y*y;
+}
+
+float umb2(vec3 p)
+{
+     float x = p.x, y = p.y, z = p.z, a = 2.;
+     float r =  x*x - z*y*y;
+    
+    if (z < -0.01)
+        r += 1.;
+    return r - 0.01;    
+}
+
+float eight (vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z, a = 1.5;
+    //z = clamp(z, 0., 10.);
+    return 4.*z*z*z*z + a*a*(x*x + y*y - 4.*z*z) ;
+}
+
+float eight2 (vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z, a = 1.1;
+    return 4.*z*z*z*z + a*a*(x*x + y*y - 4.*z*z) + sin(4.*x) + sin(4.*y) + sin(4.*z);
+}
+
+float cayley(vec3 p)
+{
+    
+    float x = p.x, y = p.y, z = p.z, a = 0.9;
+    if (length(p) > 2.)
+        return 1.;
+    
+    return x*x + y*y - x*x*z + y*y*z + z*z - a;
+}
+
+float chair(vec3 p)
+{
+    
+    float x = p.x, y = p.y, z = p.z, a = 0.8, k = 2., b = 0.4, 
+    d = x*x + y*y + z*z - a*k*k;
+       
+    return  d*d - b*((z - k)*(z-k) - 2.*x*x)*((z+k)*(z+k) - 2.*y*y);
+}
+
+float miter(vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z;
+    return  4.*x*x*(x*x + y*y + z*z) - y*y*(2.5 - y*y - z*z);
+}
+
+float piri(vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z, a = 2.2;
+    return  (x*x*x*x - a*x*x*x) + a*a*(y*y+z*z);
+}
+
+float roman(vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z, a = 1.6;
+    return  x*x*y*y + y*y*z*z + z*z*x*x - a*a*x*y*z - 0.01;
+}
+
+float piri2(vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z, a = 1.8;
+    return  (x*x*x*x - a*x*x*x) + a*a*(y*y+z*z)+ sin(4.*x) + sin(4.*y) + sin(4.*z);;
+}
 float map(vec3 p) {
+    //return eight(p);
+    //return zin(p)*zin(p) - 0.02;
+    //return digdong(p);
+    //return cayley(p);
+    //return umb2(p);
+    //return chair( p);
+    //return miter(p)*miter(p) - 0.05;
+    //return piri(p);
+    //return roman(p);
+    //return eight2(p);
+    //return piri2(p);
     //return isf(p);
-    //return capsule(p);
-    //return sphere(p);
-    //return gyroide2(p);
+    //return capsule2(p);
+    //return min(sphere(p),sline0(p));
+    //return floo(p);
+    return gyroide2(p);
     //return eggbox2(p);
-    return combo(p);
+    //return combo(p);
     //return gyroide(p);
+    //return sline0(p);
+    
     
     
     
@@ -189,7 +403,7 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     csurf = glz();
     float dist_infin = 2.2;
-    float hh = 4.2;
+    float hh = 4.5;
 
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
     vec2 mo = 1.5*cos(0.5*rottime() + vec2(0,11));
@@ -248,6 +462,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                     col = col2;
                     if(dot(rd, nor) < 0.0)
                         col = col1;
+                    //else break;    
                     vec3 R = reflect(light, nor);
                     float specular = pow(max(abs(dot(R, rd)), 0.), 25.);
                     float difu = abs(dot(nor, light));
@@ -255,6 +470,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                     col = sqrt(col);
                     break;
                 }
+                //if (sign(val1) < 0.) col = col2;
                 val0 = val1;
                 pos = pos1;
             }
