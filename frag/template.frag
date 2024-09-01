@@ -26,7 +26,7 @@ const float dist_infin = 10.0;
 #define nn 128
 const float eps = 0.001;
 
-vec3 sdfColor;
+
 vec3 resColor;
 vec3 col1 = vec3(0.3764, 0.8196, 0.3725);
 vec3 col2 = vec3(0.8117, 0.1764, 0.8078);
@@ -79,17 +79,14 @@ vec3 calccolor(vec3 col, vec3 backcol, vec3 rd, vec3 light1, vec3 light2, vec3 n
     
     //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
     col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
-
+    col = sqrt(col);
     return col;
 }
 
 vec3 ccolor(vec3 col, vec3 rd, vec3 light, vec3 nor) {
-    
     //jorge2017a2
-    
     vec3 R = reflect (light, nor);
     float specular    =  pow(max(dot(R, rd), 0.), 16.);
-    
     //iq
     /*
     vec3  hal = normalize( light-rd );
@@ -98,7 +95,8 @@ vec3 ccolor(vec3 col, vec3 rd, vec3 light, vec3 nor) {
 
     float difu = dot(nor, light);
     //col = col*clamp(difu, 0.3, 1.0) + vec3(.5)*specular*specular;
-    col = col*(col*clamp(difu, 0., 1.0) + 0.3) + vec3(.5)*specular*specular;
+    col = col*(col*clamp(difu, 0., 1.0) + 0.5) + vec3(.5)*specular*specular;
+    //col = sqrt(col);
     return col;
 }
 
@@ -110,7 +108,7 @@ vec3 ACESFilm(vec3 x){
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, .0, 1.)); //light
     vec3 light2 = normalize(vec3(0.0, 0.0, -1.)); //light
-    vec2 mo = 1.5*cos(1.5*iTime + vec2(0,11));
+    vec2 mo = 1.5*cos(0.5*iTime + vec2(0,11));
     //if  (iMouse.z > 0.0)
     {
         //mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
@@ -130,7 +128,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             vec2 o = vec2(float(m), float(n)) / float(AA) - 0.5;
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
             vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
-            vec3 col = bg * bg; // background  
+            //vec3 col = bg * bg; // background  
+            vec3 col = b2;
             //==========================raymatch=============================
             float td = 0.;
             vec3 pos = vec3(0.);

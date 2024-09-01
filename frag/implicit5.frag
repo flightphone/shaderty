@@ -25,7 +25,7 @@ Here, these same surfaces are obtained by creating grids using an algorithm
 #define PI  3.14159265359
 #define TAU 6.28318530718
 #define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
-#define nn 64.
+#define nn 128.
 #define newton 5
 float csurf = 0.;
 float scale = 10.;
@@ -104,6 +104,11 @@ float hyper(vec3 p)
 {
     float x = p.x, y = p.y, z = p.z;
     return pow(x, 2./3.) + pow(y, 2./3.) + pow(z, 2./3.) - 1.;
+}
+float sine(vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z, a = 1.3;
+    return 4.*x*x*y*y*z*z + a*a*(x-y-z)*(x+y-z)*(x-y+z)*(x+y+z)-0.005;
 }
 
 float tooth(vec3 p)
@@ -236,17 +241,6 @@ float floo(vec3 p)
 {
     return sphere(p) * capsule(p) - 0.01;
 }
-float combo(vec3 p)
-{
-    //scale = 10.;
-    if (csurf == 0.0)
-        return sphere3(p);
-    else
-    if (csurf == 1.0)
-        return eggbox(p);
-    else       
-        return mix(sphere3(p), eggbox(p), csurf);
-}
 
 float zin(vec3 p)
 {
@@ -279,7 +273,7 @@ float umb2(vec3 p)
 
 float eight (vec3 p)
 {
-    float x = p.x, y = p.y, z = p.z, a = 1.5;
+    float x = p.x, y = p.y, z = p.z, a = 1.;
     //z = clamp(z, 0., 10.);
     return 4.*z*z*z*z + a*a*(x*x + y*y - 4.*z*z) ;
 }
@@ -303,7 +297,7 @@ float cayley(vec3 p)
 float chair(vec3 p)
 {
     
-    float x = p.x, y = p.y, z = p.z, a = 0.8, k = 2., b = 0.4, 
+    float x = p.x, y = p.y, z = p.z, a = 0.8, k = 1.2, b = 0.4, 
     d = x*x + y*y + z*z - a*k*k;
        
     return  d*d - b*((z - k)*(z-k) - 2.*x*x)*((z+k)*(z+k) - 2.*y*y);
@@ -317,40 +311,85 @@ float miter(vec3 p)
 
 float piri(vec3 p)
 {
-    float x = p.x, y = p.y, z = p.z, a = 2.2;
+    float x = p.x, y = p.y, z = p.z, a = 1.6;
     return  (x*x*x*x - a*x*x*x) + a*a*(y*y+z*z);
 }
 
 float roman(vec3 p)
 {
     float x = p.x, y = p.y, z = p.z, a = 1.6;
-    return  x*x*y*y + y*y*z*z + z*z*x*x - a*a*x*y*z - 0.01;
+    return  x*x*y*y + y*y*z*z + z*z*x*x - a*a*x*y*z;
 }
 
 float piri2(vec3 p)
 {
-    float x = p.x, y = p.y, z = p.z, a = 1.8;
+    float x = p.x, y = p.y, z = p.z, a = 1.;
     return  (x*x*x*x - a*x*x*x) + a*a*(y*y+z*z)+ sin(4.*x) + sin(4.*y) + sin(4.*z);;
 }
+
+float barth(vec3 p)
+{
+    //https://mathworld.wolfram.com/BarthSextic.html
+    float x = p.x, y = p.y, z = p.z, f = 1., w = 1.;
+    return -4.*(f*f*x*x - y*y)*(f*f*y*y - z*z)*(f*f*z*z - x*x) + (1. + 2.*f)*(x*x + y*y + z*z - w*w)*(x*x + y*y + z*z - w*w)*w*w;
+}
+
+float barth2(vec3 p)
+{
+    float x = p.x, y = p.y, z = p.z, f = 1., w = 1.;
+    return -4.*(f*f*x*x - y*y)*(f*f*y*y - z*z)*(f*f*z*z - x*x) + (1. + 2.*f)*(x*x + y*y + z*z - w*w)*(x*x + y*y + z*z - w*w)*w*w - 0.005;
+}
+
+float  algebraic(vec3 p)
+    {
+        float x=p.x*p.x, y=p.y*p.y, z=p.z*p.z,a = 1.*1., r = 0.005;
+        return ((x + y - a)*(x + y - a) + (z - 1.)*(z - 1.)) *
+                ((z + y - a)*(z + y - a) + (x - 1.)*(x - 1.)) *
+                ((x + z - a)*(x + z - a) + (y - 1.)*(y - 1.)) - r;
+
+    }
+
+
+float combo(vec3 p)
+{
+    //scale = 10.;
+    if (csurf == 0.0)
+        return eight(p);
+    else
+    if (csurf == 1.0)
+        return barth2(p);
+    else       
+        return mix(eight(p), barth2(p), csurf);
+}
+
+
 float map(vec3 p) {
+    //return sine(p);
+    //return tooth(p);
+    //return barth2(p);
+    //return algebraic(p);
+    //return barth(p) - 0.01;
+    //return barth(p)*barth(p) - 0.01;
     //return eight(p);
     //return zin(p)*zin(p) - 0.02;
+    //return zin(p) - 0.005;
     //return digdong(p);
     //return cayley(p);
     //return umb2(p);
     //return chair( p);
     //return miter(p)*miter(p) - 0.05;
+    //return miter(p) - 0.01;
     //return piri(p);
     //return roman(p);
     //return eight2(p);
-    //return piri2(p);
+    //return piri(p);
     //return isf(p);
     //return capsule2(p);
     //return min(sphere(p),sline0(p));
     //return floo(p);
-    return gyroide2(p);
+    //return gyroide2(p);
     //return eggbox2(p);
-    //return combo(p);
+    return combo(p);
     //return gyroide(p);
     //return sline0(p);
     
@@ -402,8 +441,8 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #define AA 1
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     csurf = glz();
-    float dist_infin = 2.2;
-    float hh = 4.5;
+    float dist_infin = 1.6;
+    float hh = 3.2;
 
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
     vec2 mo = 1.5*cos(0.5*rottime() + vec2(0,11));
