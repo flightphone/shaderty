@@ -66,14 +66,14 @@ float noise(vec2 x) {
 	float d = hash(i + vec2(1.0, 1.0));
 
 	// Simple 2D lerp using smoothstep envelope between the values.
-	// return vec3(mix(mix(a, b, smoothstep(0.0, 1.0, f.x)),
-	//			mix(c, d, smoothstep(0.0, 1.0, f.x)),
-	//			smoothstep(0.0, 1.0, f.y)));
+	 return mix(mix(a, b, smoothstep(0.0, 1.0, f.x)),
+				mix(c, d, smoothstep(0.0, 1.0, f.x)),
+				smoothstep(0.0, 1.0, f.y));
 
 	// Same code, with the clamps in smoothstep and common subexpressions
 	// optimized away.
-	vec2 u = f * f * (3.0 - 2.0 * f);
-	return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+	//vec2 u = f * f * (3.0 - 2.0 * f);
+	//return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
 }
 
 // This one has non-ideal tiling properties that I'm still tuning

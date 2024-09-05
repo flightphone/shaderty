@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLSL</title>
+    <script src="/node_modules/glslCanvas/dist/GlslCanvas.min.js"></script>
+</head>
+<style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  
+    
+  </style>
+  
+<body>
+    <canvas id="glslCanvas" data-fragment-url="/frag/penta.frag" data-textures = "/img/met2.jpg"></canvas>
+</body>
+<script>
+  //https://www.shadertoy.com/view/4sBGDy  
+  var canvas = document.getElementById("glslCanvas");
+  var sandbox = new GlslCanvas(canvas);
+  canvas.style.width = '100%';
+  canvas.style.height = '100vh';
+</script>
+</html>
