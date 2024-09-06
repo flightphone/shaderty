@@ -148,9 +148,33 @@ float fbm(vec3 x) {
 	}
 	return v;
 }
+
+float CloudNoise(in vec2 xy)
+{
+	float w = .7;
+	float f = 0.0;
+
+	for (int i = 0; i < 4; i++)
+	{
+		f += noise(xy) * w;
+		w *= 0.45;
+		xy *= 2.7;
+	}
+	return f;
+}
+
 vec3 sky = vec3(0.08, 0.42, 0.87);
 vec3 line = vec3(1.0);
+vec3 clouds(vec2 p)
+{
+	p*=4.;
+	p.x += iTime;
+    float f = (CloudNoise(p) - 0.55)*5.;
+	// Uses the ray's y component for horizon fade of fixed colour clouds...
+	vec3 col = mix(sky, vec3(.75, .75, .72), clamp(f, 0.0, 1.0));
+    return col;
 
+}
 vec3 wood(vec2 p)
 {
 	float t = noise(vec2(p.x*2., p.y*6.));
@@ -195,9 +219,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     float l = smoothstep(0.01, 0.0, abs(t-p.y));
     vec3 col = mix(sky, line, l);
     */
-    vec3 col = wood(p);
+    //vec3 col = wood(p);
 	//vec3 col = bark(p);
-	//vec3 col = zebra(p);
+	vec3 col = zebra(p);
+	//vec3 col = clouds(p);
 	
 
 

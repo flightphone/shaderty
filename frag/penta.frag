@@ -15,16 +15,19 @@ uniform sampler2D u_tex1;
 #define iChannel1 u_tex1
 #define texture texture2D
 
-//noise
+//Halloween penta
+//raytracing,bisect,implicit,noise,icosahedral,barth
+/*
+this object is located in the center of the "Barth Sextic" surface
+https://mathworld.wolfram.com/BarthSextic.html
+*/
 
 // Precision-adjusted variations of https://www.shadertoy.com/view/4djSRW
 float hash(float p) { p = fract(p * 0.011); p *= p + 7.5; p *= p + p; return fract(p); }
-//float hash(vec2 p) {vec3 p3 = fract(vec3(p.xyx) * 0.13); p3 += dot(p3, p3.yzx + 3.333); return fract((p3.x + p3.y) * p3.z); }
-float hash(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }  //!!!Best
 //	<https://www.shadertoy.com/view/4dS3Wd>
 //	By Morgan McGuire @morgan3d, http://graphicscodex.com
 
-
+// This one has non-ideal tiling properties that I'm still tuning
 float noise(float x) {
 	float i = floor(x);
 	float f = fract(x);
@@ -32,27 +35,6 @@ float noise(float x) {
 	return mix(hash(i), hash(i + 1.0), u);
 }
 
-float noise(vec2 x) {
-	vec2 i = floor(x);
-	vec2 f = fract(x);
-	// Four corners in 2D of a tile
-	float a = hash(i);
-	float b = hash(i + vec2(1.0, 0.0));
-	float c = hash(i + vec2(0.0, 1.0));
-	float d = hash(i + vec2(1.0, 1.0));
-
-	// Simple 2D lerp using smoothstep envelope between the values.
-	// return mix(mix(a, b, smoothstep(0.0, 1.0, u.x)),
-	//			mix(c, d, smoothstep(0.0, 1.0, u.x)),
-	//			smoothstep(0.0, 1.0, u.y));
-
-	// Same code, with the clamps in smoothstep and common subexpressions
-	// optimized away.
-	vec2 u = f * f * (3.0 - 2.0 * f);
-	return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-}
-
-// This one has non-ideal tiling properties that I'm still tuning
 float noise(vec3 x) {
 	const vec3 step = vec3(110, 241, 171);
 
@@ -85,23 +67,17 @@ float scale = 10.;
 
 
 
-float barth2(vec3 p)
-{
-
-    float k = 0.7, x = p.x*k, y = p.y*k, z = p.z*k, f = 1.1, w = 1.;
-    return -4.*(f*f*x*x - y*y)*(f*f*y*y - z*z)*(f*f*z*z - x*x) + (1. + 2.*f)*(x*x + y*y + z*z - w*w)*(x*x + y*y + z*z - w*w)*w*w - 0.25;
-}
-
 
 
 float map(vec3 p) {
-    return barth2(p);
+    float x = p.x, y = p.y, z = p.z, f = 1., w = 1.;
+    return -4.*(f*f*x*x - y*y)*(f*f*y*y - z*z)*(f*f*z*z - x*x) + (1. + 2.*f)*(x*x + y*y + z*z - w*w)*(x*x + y*y + z*z - w*w)*w*w - 0.25;
 }
 
-vec3 calcNormal(in vec3 p) {
+vec3 calcNormal(in vec3 pos) {
     const float eps = 0.0001;
     vec2 q = vec2(0.0, eps);
-    vec3 res = vec3(map(p + q.yxx) - map(p - q.yxx), map(p + q.xyx) - map(p - q.xyx), map(p + q.xxy) - map(p - q.xxy));
+    vec3 res = vec3(map(pos + q.yxx) - map(pos - q.yxx), map(pos + q.xyx) - map(pos - q.xyx), map(pos + q.xxy) - map(pos - q.xxy));
     return normalize(res);
 }
 
@@ -141,12 +117,11 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #define AA 1
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     
-    float dist_infin = 2.2;
-    float hh = 4.2;
+    float dist_infin = 1.5;
+    float hh = 3.;
 
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
     vec2 mo = 1.5*cos(0.5*iTime + vec2(0,11));
-    //vec2 mo = 1.5*cos(0.5*iTime + vec2(0,11));
     //if  (iMouse.z > 0.0)
     {
         mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
@@ -198,14 +173,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                     //STEP 3. binary search to clarify the intersection of a ray with a surface.
                     pos = getPoint(pos, pos1, val0, val1);
                     vec3 nor = calcNormal(pos);
-                    col = col2;
-                    
-                    if(dot(rd, nor) < 0.0)
-                        col = col1;
-                    
+                    col = col1;
                     
                     if (dot(pos, nor) < 0.0)
-                        col = col2;
+                        col = col2*(1. + (0.5 - noise(iTime*3.))*1.18);
                     //texture
                     
                     float tx = noise(pos*2.);

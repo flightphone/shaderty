@@ -94,9 +94,23 @@ def cylinder(x, y, z, t) ->Poli:
 def shpere(x, y, z, t) ->Poli:
     return x*x + y*y + z*z - t*t
 
+def shpere1(x, y, z) ->Poli:
+    return x*x + y*y + z*z
+
 def test(x, y, z, t):
     return (x*x - x)*(y*y - y) - z
-    
+
+def barth(x, y, z):    
+    k4 = Poli()
+    k4.p[0] = [(-4, '')] 
+
+    k3 = Poli()
+    k3.p[0] = [(3, '')] 
+
+    w = Poli()
+    w.p[0] = [(1, '')]
+    #return k4*x*x + k3*y*y + z*z
+    return k4*(x*x - y*y)*(y*y - z*z)*(z*z - x*x) + k3*(x*x + y*y + z*z - w)*(x*x + y*y + z*z - w)    
 #clebsch_surface()
 #example_surfase()
 #gayley()
@@ -104,14 +118,15 @@ def test(x, y, z, t):
 #monkey()
 #roman
 
-sys.stdout = open("code.txt", "w")
-polynom = shpere
+#sys.stdout = open("code.txt", "w")
+polynom = barth
+'''
 x, y, z, t = param()
 r = polynom(x, y, z, t)
 print(r.format())
-
+'''
 x, y, z = axis()
-r = polynom(x, y, z, t)
+r = polynom(x, y, z)
 print(r.normal())
 
 
