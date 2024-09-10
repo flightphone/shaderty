@@ -181,6 +181,17 @@ vec3 wood(vec2 p)
     t = fract(t*10.);
     return vec3(t);
 }
+
+vec3 pearl(vec2 p)
+{
+	float t = noise(vec2(p.x*0.3+0.2, p.y*0.3+0.6));
+	t = fract(t*20.);
+	//t = 3.*t*t*t - 2.*t*t;
+	vec3 col1 = vec3(0.7137, 0.7843, 0.7843);
+	vec3 col2 = vec3(0.7411, 0.647, 0.7411);
+	return mix(col1, col2, t);
+}
+
 vec3 zebra(vec2 p)
 {
 	//float t = fbm(vec2(p.x*4., p.y*8.));
@@ -220,9 +231,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 col = mix(sky, line, l);
     */
     //vec3 col = wood(p);
-	//vec3 col = bark(p);
-	vec3 col = zebra(p);
+	vec3 col = bark(p);
+	//vec3 col = zebra(p);
 	//vec3 col = clouds(p);
+	//vec3 col = pearl(p);
 	
 
 

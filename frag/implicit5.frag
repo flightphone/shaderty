@@ -339,8 +339,23 @@ float eight (vec3 p)
 float eight2 (vec3 p)
 {
     float x = p.x, y = p.y, z = p.z, a = 1.1;
-    return 4.*z*z*z*z + a*a*(x*x + y*y - 4.*z*z) + sin(4.*x) + sin(4.*y) + sin(4.*z);
+    float res =  9.*z*z*z*z + a*a*(x*x + y*y - 9.*z*z);
+    if (z < 0.)
+        res += 100.;
+    return res;    
 }
+
+float tor(vec3 p)
+{
+    if (p.z > 0.)
+        return 10.;
+
+    float x = p.x, y = (p.z), z = p.y, r = 0.1, R = 0.6, v = (x*x + y*y + z*z + R*R - r*r);
+    return v*v - 4.*R*R*(x*x + y*y);
+
+}
+
+
 
 float cayley(vec3 p)
 {
@@ -421,11 +436,194 @@ float combo(vec3 p)
         return mix(eight(p), barth2(p), csurf);
 }
 
+float sdBox( in vec2 p, in vec2 b )
+{
+    vec2 d = abs(p)-b;
+    return length(max(d,0.0)) + min(max(d.x,d.y),0.0);
+}
 
+float sdBox2( in vec2 p, in vec2 b )
+{
+    vec2 d = abs(p)-b;
+    return length(max(d,0.0)) + min(max(d.x,d.y),0.0);
+}
+
+float sdRoundedBox( in vec2 p, in vec2 b, in vec4 r )
+{
+    r.xy = (p.x>0.0)?r.xy : r.zw;
+    r.x  = (p.y>0.0)?r.x  : r.y;
+    vec2 q = abs(p)-b+r.x;
+    return min(max(q.x,q.y),0.0) + length(max(q,0.0)) - r.x;
+}
+
+float sdBoxTube(vec3 p)
+{
+    float d2 = sdBox(p.xy, vec2(1., 1.5));
+    return d2*d2 + p.z*p.z - 0.02;
+}
+
+float sdBox3(vec3 p)
+{
+    float d2 = sdRoundedBox(p.xy, vec2(1., 1.5), vec4(0.1));
+    return d2 + 8.*p.z*p.z;
+}
+
+float gr(vec2 p)
+{
+    float r = 1.5;
+    if (length(p) < r)
+    {
+        float x1 = (p.x + r)/2.0/r, 
+                y1 = (p.y + r)/2.0/r;
+        float f3 = dot(texture(iChannel0, vec2(x1,y1)).rgb, vec3(0.3, 0.59, 0.11));
+        f3 = pow(f3, 0.3);
+        f3 = 1.0 - f3;
+        return f3;
+    }
+    return 0.;
+}
+
+float sdRound3(vec3 p)
+{
+    float R0 = 2.0, d2 = dot(p.xy, p.xy) - R0*R0;
+    if (p.z > 0.)
+        d2 += 8.*p.z*p.z*p.z + gr(p.xy);
+    else
+        d2 += 50.*p.z*p.z;
+    
+    //float x = p.x, y = p.z, z = p.y, 
+    float r = 0.1, R = 0.6,  
+    v = (dot(p, p) + R*R - r*r);
+    v =  v*v - 4.*R*R *(dot(p.xz, p.xz));
+    if (p.z >.0)
+        v = 10.;
+    return d2*v - 0.01;
+    
+    
+}
+
+float sdBox3a(vec3 p)
+{
+    float d2 = sdBox(p.xy, vec2(1.6, 1.2));
+    //float d2 = sdRoundedBox(p.xy, vec2(1.8, 1.2), vec4(0.05));
+    if (p.z > 0.)
+        return d2 + 4.*p.z*p.z*p.z;
+    else
+        return d2 + 25.*p.z*p.z;
+}    
+    
+
+
+float holed2(vec3 p) {
+    float k = 1., x = p.x*k, y = p.y*k, z = p.z*k, x2 = x * x, y2 = y * y, z2 = z * z, u = (x2) * (2. - x2) - y2;
+    return u*u + z*z - 0.1;
+}
+
+float sdHexagram( in vec2 p, in float r )
+{
+    const vec4 k = vec4(-0.5,0.8660254038,0.5773502692,1.7320508076);
+    p = abs(p);
+    p -= 2.0*min(dot(k.xy,p),0.0)*k.xy;
+    p -= 2.0*min(dot(k.yx,p),0.0)*k.yx;
+    p -= vec2(clamp(p.x,r*k.z,r*k.w),r);
+    return length(p)*sign(p.y);
+}
+
+float sdHexagram3(vec3 p)
+{
+    float d2 = sdHexagram(p.xy,  1.);
+    return d2 + 3.5*p.z*p.z;
+}
+
+
+float sdHexagramTube(vec3 p)
+{
+    float d2 = sdHexagram(p.xy,  1.);
+    return d2*d2 + p.z*p.z - 0.04;
+}
+float dot2( in vec2 v ) { return dot(v,v); }
+float sdHeart( in vec2 p )
+{
+    p.x = abs(p.x);
+
+    if( p.y+p.x>1.0 )
+        return sqrt(dot2(p-vec2(0.25,0.75))) - sqrt(2.0)/4.0;
+    return sqrt(min(dot2(p-vec2(0.00,1.00)),
+                    dot2(p-0.5*max(p.x+p.y,0.0)))) * sign(p.x-p.y);
+}
+
+float sdHeartTube(vec3 p)
+{
+    p*=0.6;
+    float d2 = sdHeart(p.xy);
+    return d2*d2 + p.z*p.z - 0.02;
+}
+float sdOctahedron( vec3 p, float s )
+{
+  p = abs(p);
+  float m = p.x+p.y+p.z-s;
+  vec3 q;
+       if( 3.0*p.x < m ) q = p.xyz;
+  else if( 3.0*p.y < m ) q = p.yzx;
+  else if( 3.0*p.z < m ) q = p.zxy;
+  else return m*0.57735027;
+    
+  float k = clamp(0.5*(q.z-q.y+s),0.0,s); 
+  return length(vec3(q.x,q.y-s+k,q.z-k)); 
+}
+
+
+float sdPentagon( in vec2 p, in float r )
+{
+    const vec3 k = vec3(0.809016994,0.587785252,0.726542528);
+    p.x = abs(p.x);
+    p -= 2.0*min(dot(vec2(-k.x,k.y),p),0.0)*vec2(-k.x,k.y);
+    p -= 2.0*min(dot(vec2( k.x,k.y),p),0.0)*vec2( k.x,k.y);
+    p -= vec2(clamp(p.x,-r*k.z,r*k.z),r);    
+    return length(p)*sign(p.y);
+}
+float sdPentagon3( vec3 p)
+{
+    float d2 = sdPentagon(p.xy, 1.7);
+    if (p.z > 0.)
+        return d2 + 2.*p.z*p.z*p.z;
+    else
+        return d2 + 25.*p.z*p.z;
+}
+
+
+float button(vec3 p)
+{
+    //return tor(p)*sdBox3a(p) - 0.01;
+    return tor(p)*sdPentagon3(p) - 0.01;
+    
+}
+
+float button2(vec3 p)
+{
+    const float k = 2.0; // or some other amount
+    float c = cos(k*p.x);
+    float s = sin(k*p.x);
+    mat2  m = mat2(c,-s,s,c);
+    vec3  q = vec3(m*p.xy,p.z);
+    return button(q);
+}
 float map(vec3 p) {
     //return sine(p);
     //return tooth(p);
-    return barth2(p);
+    //return barth2(p);
+    //return eight2(p);
+    //return button(p);
+    return sdRound3(p);
+    //return button2(p);
+    //return sdOctahedron(p, 1.5)-0.1;
+    //return sdBoxTube(p);
+    //return sdBox3(p);
+    //return sdBox3a(p);
+    //return holed2(p);
+    //return sdHexagram3(p);
+    //return sdHeartTube(p);
+    //return sdHexagramTube(p);
     //return algebraic(p);
     //return barth(p) - 0.1;
     //return barth(p)*barth(p) - 0.1;
@@ -499,13 +697,13 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 
 #define AA 1
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    csurf = glz();
+    //csurf = glz();
     float dist_infin = 2.2;
     float hh = 4.2;
 
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
-    vec2 mo = 1.5*cos(0.5*rottime() + vec2(0,11));
-    //vec2 mo = 1.5*cos(0.5*iTime + vec2(0,11));
+    //vec2 mo = 1.5*cos(0.5*rottime() + vec2(0,11));
+    vec2 mo = 1.5*cos(0.5*iTime + vec2(0,11));
     //if  (iMouse.z > 0.0)
     {
         mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
@@ -559,15 +757,22 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                     vec3 nor = calcNormal(pos);
                     col = col2;
                     
-                    if(dot(rd, nor) < 0.0)
+                    //if(dot(rd, nor) < 0.0)
                         col = col1;
                     
                     //texture
-                    
+                    /*
                     float tx = noise(pos*2.);
                     tx = fract(tx*5.);
                     tx = smoothstep(0., 0.01, tx-0.5);
                     col*=tx;
+                    */ 
+                    /*                   
+                    float tx = noise(pos*2.);
+                    tx = fract(tx*10.);
+                    //tx = smoothstep(0., 0.01, tx-0.5);
+                    col*=tx;
+                    */
                     
 
                     //else break;    
