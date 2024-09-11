@@ -50,6 +50,10 @@ float arch(vec3 p, float R, float h, float l) {
     return res;
 }
 
+
+
+
+
 float level(vec3 p, float R, float h)
 {
     return max((arch(p, R, h, 100.)), (arch(p.yxz, R, h, 100.)));
@@ -61,16 +65,6 @@ float sdBox( vec3 p, vec3 b )
   p.z -= b.z;
   vec3 q = abs(p) - b;
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-  /*
-  vec3 q = vec3(0.);  
-  abs(-p.z), (p.z - b.z);
-  if (p.z > 0.)  
-    q = vec3(p.z - b.z, abs(p.xy)-b.xy);
-  else
-    q = vec3(-p.z, abs(p.xy)-b.xy);  
-
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-  */
 }
 
 float arch2(vec3 p, float R, float h)
@@ -87,11 +81,91 @@ float level2 (vec3 p, float R, float h, float w, float H)
     return max (t, -t2);
 }
 
+float sdOctogon( in vec2 p, in float r )
+{
+    const vec3 k = vec3(-0.9238795325, 0.3826834323, 0.4142135623 );
+    p = abs(p);
+    p -= 2.0*min(dot(vec2( k.x,k.y),p),0.0)*vec2( k.x,k.y);
+    p -= 2.0*min(dot(vec2(-k.x,k.y),p),0.0)*vec2(-k.x,k.y);
+    p -= vec2(clamp(p.x, -k.z*r, k.z*r), r);
+    return length(p)*sign(p.y);
+}
+
+float sdOctogon3( in vec3 p, in float r, float h)
+{
+    p.z -= h/2.;
+    float d = sdOctogon(p.xy, r);
+    vec2 w = vec2( d, abs(p.z) - h/2. );
+    return min(max(w.x,w.y),0.0) + length(max(w,0.0));
+}
+
+float level8(vec3 p, float r, float h, float R, float H)
+{
+    float t = sdOctogon3(p, R, H);
+    float t0 = arch2(p, r, h);
+    p.xy *= rot(PI/4.);
+    float t1 = arch2(p, r, h);
+    float t2 = min(t1, t0);
+    return max (t, -t2);
+}
+//https://iquilezles.org/articles/distfunctions/
+float dot2( in vec3 v ) { return dot(v,v); }
+float udTriangle( vec3 p, vec3 a, vec3 b, vec3 c )
+{
+  vec3 ba = b - a; vec3 pa = p - a;
+  vec3 cb = c - b; vec3 pb = p - b;
+  vec3 ac = a - c; vec3 pc = p - c;
+  vec3 nor = cross( ba, ac );
+
+  
+  return sqrt(
+    (sign(dot(cross(ba,nor),pa)) +
+     sign(dot(cross(cb,nor),pb)) +
+     sign(dot(cross(ac,nor),pc))<2.0)
+     ?
+     min( min(
+     dot2(ba*clamp(dot(ba,pa)/dot2(ba),0.0,1.0)-pa),
+     dot2(cb*clamp(dot(cb,pb)/dot2(cb),0.0,1.0)-pb) ),
+     dot2(ac*clamp(dot(ac,pc)/dot2(ac),0.0,1.0)-pc) )
+     :
+     dot(nor,pa)*dot(nor,pa)/dot2(nor) );
+}
+
+float dome(vec3 p, float R, float h)
+{
+    /*
+    if (p.z <0.)
+    {
+        float d = sdOctogon(p.xy, R);
+        return length(vec2(max(d, 0.), p.z));
+    }
+    */
+    /*
+    if (p.z >= h)
+        return length(p - vec3(0., 0., h));
+    */
+    float fi = mod(atan(p.y, p.x), TAU);
+    fi = mod(fi + PI/8., TAU);
+    float n = floor(fi/(PI/4.)), fi0 = -PI/8. + n*PI/4., fi1 = PI/8. + n*PI/4.;
+    vec3 a = vec3(R*cos(fi0), R*sin(fi0), 0.);
+    vec3 b = vec3(R*cos(fi1), R*sin(fi1), 0.);
+    vec3 c = vec3(0., 0., h);
+    return udTriangle(p, a, b, c);
+}
 
 float map(vec3 p) {
     p.yz *= rot(PI/2.);
-    //return arch(p, 0.3, 0.6, 0.5) - 0.1;
+    //return arch_combo(p, 0.3, 0.6) - 0.1;
     
+    //return sdOctogon3(p, 0.6, 1.2);
+    p.z-=0.3;
+    float t1 =  dome(p, 1.2, 1.5)-0.05;
+    p.z += 1.9;
+    float t2 =  level8(p, 0.25, 1.3, 1., 2.);
+    return min(t1, t2);
+    //return level2(p, 0.4, 0.9, 0.65, 1.5);
+    
+    /*
     p.z -= 1.;
     float t0 = level(p, 0.2, 0.3) - 0.1;
     p.z += 0.95;
@@ -99,7 +173,7 @@ float map(vec3 p) {
     p.z += 1.55;
     float t2 = level2(p, 0.4, 0.9, 0.65, 1.5)-0.03;
     return min(t0, min(t1, t2));
-    
+    */
 }
 
 // https://iquilezles.org/articles/normalsSDF
@@ -169,6 +243,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             //======================color====================================
             if(td < dist_infin) {
                 col = col1*col1;
+                //===========================================================
+                //if (length(pos.xz - vec2(cos(PI/8.), sin(PI/8.))) < 0.1)
+                //    col = vec3(1., 0., 0.);
+                ////////////////////////////////////////////////////////////    
                 vec3 nor = calcNormal(pos);
                 vec3 R = reflect(light, nor);
                 float specular = pow(max(abs(dot(R, rd)), 0.), 16.);

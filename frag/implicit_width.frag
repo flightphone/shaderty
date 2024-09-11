@@ -111,12 +111,24 @@ float acr(vec3 p, float R, float h, float l)
     return res;    
 }
 
+float sdCutHollowSphere( vec3 p, float r, float h, float t )
+{
+  // sampling independent computations (only depend on shape)
+  float w = sqrt(r*r-h*h);
+  
+  // sampling dependant computations
+  vec2 q = vec2( length(p.xz), p.y );
+  return ((h*q.x<w*q.y) ? length(q-vec2(w,h)) : 
+                          abs(length(q)-r) ) - t;
+}
+
 float map(vec3 p) {
     //return sdSphere2(p, 2.) - 0.1;
     //return (sdSphere2(p, 2.) - 0.01) * (sdSphere2(p, 1.7) - 0.01);
+    return sdCutHollowSphere(p, 2., 0.4, 0.05);
     //return acr(p, 0.5, 1., 1.) - 0.05;
     //return (acr(p, 0.5, 1., 1.)-0.1)*(acr(p.yxz, 0.5, 1., 1.) - 0.1)-0.001;
-    return max((acr(p, 0.5, 1., 1.)-0.01),(acr(p.yxz, 0.5, 1., 1.)-0.01))-0.2;
+    //return max((acr(p, 0.5, 1., 1.)-0.01),(acr(p.yxz, 0.5, 1., 1.)-0.01))-0.2;
 
     
 }
