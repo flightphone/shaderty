@@ -213,9 +213,9 @@ float dish(vec3 p) {
 }
 
 float map(vec3 p) {
-    return sdRound3(p);
+    //return sdRound3(p);
     //return ring(p);
-    //return dish(p);
+    return dish(p);
     //return trefoil(p);
 
 }
@@ -379,6 +379,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                     vec3 sn = nor;
                     vec3 ld = lp - sp;
                     vec3 oC = col1;
+                    
+                    float tx = noise(pos*2.);
+                    tx = fract(tx*5.);
+                    tx = smoothstep(0., 0.01, tx-0.5);
+                    oC*=tx;
+                     
 
                     float lDist = max(length(ld), 0.001); // Light distance.
                     float atten = 1. / (1. + lDist * .125); // Light attenuation.

@@ -105,13 +105,13 @@ float gr(vec2 p) {
     t2 = smoothstep(0., 0.05, t2 + 0.1) * smoothstep(0., 0.05, 0.1 - t2);
     t2 *= 2.;
     t += t2;
-    return -t;
+    return -t*0.5;
 }
 
 float sdRound3(vec3 p) {
     float R0 = 2.0, d2 = dot(p.xy, p.xy) - R0 * R0;
     if(p.z > 0.)
-        d2 += 8. * p.z * p.z * p.z + gr(p.xy);
+        d2 += 5. * p.z * p.z  + gr(p.xy);
     else
         d2 += 50. * p.z * p.z;
 
@@ -271,7 +271,7 @@ float calculateAO(in vec3 p, in vec3 n) {
         occ += (hr - dd) * sca;
         sca *= 0.7;
     }
-    return clamp(1.0 - occ, 0., 1.);
+    return clamp(1.0 - occ, 0.3, 1.);
 }
 
 // Simple environment mapping. Pass the reflected vector in and create some
