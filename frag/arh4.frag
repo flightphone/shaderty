@@ -32,80 +32,64 @@ const float dist_infin = 10.0;
 
 const float eps = 0.001;
 vec3 bg = vec3(0.08, 0.42, 0.87);
-vec3 col1 = vec3(0.73, 0.7, 0.4);
-float npp =15.;
-float lev = 0.995;
 
-float hash (vec3 p) {
-    return fract(sin(dot(p, vec3(127.1,311.7, 74.7))) * 43758.5453123);
-}
-float sdBox( vec3 p, vec3 b )
-{
-  b.z = b.z/2.;
-  p.z -= b.z;
-  vec3 q = abs(p) - b;
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-}
 
-/*
-float arch2(vec3 p, float R, float h)
+vec3 getSg(vec3 p, float nseg)
 {
-    float res = 0.;
-    res = min(length(vec2(p.x, max(p.z - h, 0.))), length(vec2(p.y, max(p.z - h, 0.)))) - R;
-    return res;    
-}
-*/
-
-float level2 (vec3 p, float R, float h, float w, float H)
-{
-    float t = sdBox(p, vec3(w, w, H));
     float fi = mod(atan(p.y, p.x), TAU);
-    fi = mod(fi+PI/4., TAU);
-    float n = floor(fi/(PI/2.));
-    p.xy*= rot(-n*PI/2.);
-    float t2 = length(vec2(p.y, max(p.z - h, 0.))) - R;
-    //float t2 = arch2(p, R, h);
-    return max (t, -t2);
+    fi = mod(fi+PI/nseg, TAU);
+    float n = floor(fi/TAU*nseg);
+    p.xy*= rot(-n*TAU/nseg);
+    return p;
 }
 
-float sdOctogon( in vec2 p, in float r )
+float sdsg(vec2 p, float x, float y)
 {
-    const vec3 k = vec3(-0.9238795325, 0.3826834323, 0.4142135623 );
-    p = abs(p);
-    p -= 2.0*min(dot(vec2( k.x,k.y),p),0.0)*vec2( k.x,k.y);
-    p -= 2.0*min(dot(vec2(-k.x,k.y),p),0.0)*vec2(-k.x,k.y);
-    p -= vec2(clamp(p.x, -k.z*r, k.z*r), r);
-    return length(p)*sign(p.y);
+    float res = length(vec2(p.x - x, max (abs(p.y)-y, 0.)));
+    return res*sign(p.x - x);
 }
 
-float sdOctogon3( in vec3 p, in float r, float h)
+float sdQSide( vec2 p, float r)
+{
+    return sdsg(p, r, r);
+}
+
+float sdQ3Side( vec3 p, float r, float h)
 {
     p.z -= h/2.;
-    float d = sdOctogon(p.xy, r);
+    float d = sdQSide(p.xy, r);
     vec2 w = vec2( d, abs(p.z) - h/2. );
     return min(max(w.x,w.y),0.0) + length(max(w,0.0));
 }
 
-float level8(vec3 p, float r, float h, float R, float H)
+
+float level2side (vec3 p, float R, float h, float w, float H)
 {
-    float t = sdOctogon3(p, R, H);
-    float fi = mod(atan(p.y, p.x), TAU);
-    fi = mod(fi+PI/8., TAU);
-    float n = floor(fi/(PI/4.));
-    p.xy*= rot(-n*PI/4.);
-    float t2 = length(vec2(p.y, max(p.z - h, 0.))) - r;
+    float t = sdQ3Side(p, w, H); //sdBox(p, vec3(w, w, H));
+    float t2 = length(vec2(p.y, max(p.z - h, 0.))) - R;
     return max (t, -t2);
-    /*
-    float t0 = arch2(p, r, h);
-    p.xy *= rot(PI/4.);
-    float t1 = arch2(p, r, h);
-    float t2 = min(t1, t0);
-    return max (t, -t2);
-    */
-    
-    
 }
 
+float sdPolygonSide(vec2 p, float r, float nseg)
+{
+    float x = r*cos(PI/nseg), y = r*sin(PI/nseg);
+    return sdsg(p, x, y);
+}    
+
+float sdPolygon3Side(vec3 p, float r, float h, float nseg)
+{
+    p.z -= h/2.;
+    float d = sdPolygonSide(p.xy, r, nseg);
+    vec2 w = vec2( d, abs(p.z) - h/2. );
+    return min(max(w.x,w.y),0.0) + length(max(w,0.0));
+}
+
+float level8side(vec3 p, float r, float h, float R, float H, float nseg)
+{
+    float t = sdPolygon3Side(p, R, H, nseg);
+    float t2 = length(vec2(p.y, max(p.z - h, 0.))) - r;
+    return max (t, -t2);
+}
 
 
 //https://iquilezles.org/articles/distfunctions/
@@ -154,13 +138,11 @@ float udQuad( vec3 p, vec3 a, vec3 b, vec3 c, vec3 d )
      dot(nor,pa)*dot(nor,pa)/dot2(nor) );
 }
 
-float dome(vec3 p, float R, float h)
+float domeside(vec3 p, float R, float h, float nseg)
 {
-    float fi = mod(atan(p.y, p.x), TAU);
-    fi = mod(fi + PI/8., TAU);
-    float n = floor(fi/(PI/4.)), fi0 = -PI/8. + n*PI/4., fi1 = PI/8. + n*PI/4.;
-    vec3 a = vec3(R*cos(fi0), R*sin(fi0), 0.);
-    vec3 b = vec3(R*cos(fi1), R*sin(fi1), 0.);
+    float x = R*cos(PI/nseg), y = R*sin(PI/nseg);
+    vec3 a = vec3(x, y, 0.);
+    vec3 b = vec3(x, -y, 0.);
     vec3 c = vec3(0., 0., h);
     return udTriangle(p, a, b, c);
 }
@@ -192,9 +174,7 @@ float roof(vec3 p, float R, float r)
         a1 = vec3(R*w, -R*w, 0.0); 
         b1 = vec3(R, -R*w, 0.); 
         c1 = vec3(R, -R, 0.); 
-        
-
-        
+       
     }
     float t0 = udQuad(p, a, b, c, d),
           t1 = udTriangle(p, a1, b1, c1),
@@ -207,15 +187,21 @@ float t2R = (2.51-0.6*2.)/2., t2w = 2.51/2.;
 
 float map(vec3 p) {
     p.yz *= rot(PI/2.);
-    p.z -= 2.1;
-    float d1 =  dome(p, dome1R, 0.9)-0.03;
-    p.z += 1.38;
-    float d0 =  level8(p, 0.17, 0.84, dome0R, 1.39);
-    p.z += 0.7;
-    float t0 = sdBox(p, vec3(t0R, t0R, 0.7))-0.03;
+    float n1 = 8.;
+    vec3 p1 = getSg(p, n1);
+    p1.z -= 2.1;
+    float d1 =  domeside(p1, dome1R, 0.9, n1)-0.03;
+    p1.z += 1.38;
+    float d0 =  level8side(p1, 0.17, 0.84, dome0R, 1.39, n1);
+    p1.z += 0.7;
+    
+    p.z = p1.z;
+    
+    p1 = getSg(p, 4.);
+    float t0 = sdQ3Side(p1, t0R,  0.7)-0.03;
     float t1 = roof(p, t1R, 0.03) - 0.05;
-    p.z+=2.6;
-    float t2 =  level2(p, t2R, 1.7, t2w, 2.6);
+    p1.z+=2.6;
+    float t2 =  level2side(p1, t2R, 1.7, t2w, 2.6);
     return min(min(min(min(t1, t2), t0), d0), d1);
 }
 
