@@ -312,6 +312,70 @@ float halloween(vec3 p)
     //d = max(d, -e2);
     return d;
 }
+
+float insole2 (vec3 p)
+{
+    float k = 0.5, x = p.x * k, y = p.y * k, z = p.z * k;
+    float w = 1.8, r = 0.3, h = 0.01;
+    x += w/2.;
+    z += .5;
+    float z0 = 1.0 - smoothstep(0.1, w * 0.75, x);
+    z -= z0;
+    float dx = clamp(x, 0., w);
+    //r = r + dx * 0.12;
+    r = r + 0.1*sin((w-dx)/w*TAU);
+
+    float d = length(vec2(x - clamp(x, 0., w), y)) - r;
+   
+    if (x > w)
+    {
+        d = length(vec2(x-w, max(abs(y)-r, 0.)));
+    }
+    
+    vec2 w2 = vec2(d, abs(z) - h);
+    float res =  min(max(w2.x, w2.y), 0.0) + length(max(w2, 0.0));
+    return res*0.95 - 0.02;
+}
+
+float heel2(vec3 p)
+{
+    float k = 0.45, x = p.x * k, y = p.y * k, z = p.z * k;
+    float r = 0.05, w = 0.05, d = 0.;
+    z += .5;
+    x += .75;
+    r = r * (2.2 * z * z + 1.);
+    w = w * (2.2 * z * z + 1.);
+    d = length(vec2(max(abs(x) - w, 0.), y)) - r;
+    if (x > 0.)
+    {
+        d = length(vec2(x, max(abs(y)-r, 0.)));
+    }
+    vec2 w2 = vec2(d, abs(z) - clamp(z, 0.,  0.95));
+    float res =  min(max(w2.x, w2.y), 0.0) + length(max(w2, 0.0));
+    return res - 0.02;
+}
+
+float strap2(vec3 p)
+{
+    p.x += 1.;
+    p.z -= .85;
+    float r = 0.7, h = 0.5;
+    float d = abs(length(p.xy) - r);
+    if (p.x < 0.)
+    {
+        d = length(vec2(p.x, max(abs(p.y)-r, 0.)));
+    }
+    vec2 w2 = vec2(d, abs(p.z) - clamp(p.z, 0.,  h));
+    float res =  min(max(w2.x, w2.y), 0.0) + length(max(w2, 0.0));
+    return res - 0.01;
+}
+
+float sh(vec3 p)
+{
+    float d = smin(heel2(p), insole2 (p), 0.01);
+    d = smin(d, strap2(p.zyx), 0.01);
+    return d;
+}
 float map(vec3 p) {
     //return umb(p);
     //return halloween(p);
@@ -320,7 +384,11 @@ float map(vec3 p) {
     //return grid(p);
     //return rose(p);
     //return noiseSph(p);
-    return cylinder2(p);
+    //return cylinder2(p);
+    //return insole (p);
+    //return strep(p);
+    //return min(heel(p), insole (p));
+    return sh(p.xzy);
     
 
 }
@@ -372,7 +440,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
             vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
             //vec3 col = bg * bg; // background  
-            vec3 col = b2;
+            vec3 col = b2*b2;
             //vec3 col = wave(p + 5.);
             //==========================raymatch=============================
             float td = 0.;

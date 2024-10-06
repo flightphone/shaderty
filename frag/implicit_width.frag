@@ -136,7 +136,7 @@ float quin(vec3 p) {
 }
 
 float pluspole(vec3 p, float r) {
-    return pow(max(length(p) - r, 0.0), 10.);
+    return pow(5.0*max(length(p) - r, 0.0), 2.);
 }
 
 float pluspole(vec2 p, float r) {
@@ -360,24 +360,61 @@ float heel(vec3 p) {
 
 }
 
+float coti(vec3 p)
+{
+    float k = 1., x = p.x * k, y = p.y * k, z = p.z * k, a = 0.6/TAU,
+    dz = TAU*a;
+    float f = mod(atan(y, x), TAU);
+    z -= floor(z/dz)*dz; 
+    //return (f*a - z);
+    return (f*a - z);
+    //return (f/a - z)*(f/a - z) - 0.1;
+}
+
+float coti2(vec3 p)
+{
+    //https://mathcurve.com/surfaces.gb/helicoiddroit/helicoiddroit.shtml
+    float a = 0.5*TAU, f = p.z*a;
+    return dot(p.xy, vec2(cos(f), sin(f)));
+}
+
+float cyl(vec3 p)
+{
+    float k = 1., x = p.x * k, y = p.y * k, z = p.z;
+    return length(vec2(x, y)) - .3;
+}
+
+float coti3(vec3 p)
+{
+    p*=1.;
+    return coti2(p)*coti2(p) + pluspole(p, 2.6) - 0.01+ cyl(p)*cyl(p);
+}
 
 
 float map(vec3 p) {
+    //https://mathcurve.com/surfaces.gb/orthobicycle/orthobicycle.shtml
     
+    
+    //return coti2(p);
+    //return coti2(p) + cyl(p)*cyl(p)+ pluspole(p, 2.6);
+    //return coti2(p)*coti2(p) + pluspole(p, 2.6) - 0.1;
+    //return coti2(p)*coti2(p) + pluspole(p.xy, 1.6) + pluspole(p, 2.6) - 0.1;
+    //return coti3(p);
     //return galoshes(p);
     //return insole(p);
     //return heel(p);
     //return streep(p, 1., 0.5)-0.1;
 
-    //return sch2(p);
+    return sch2(p);
     //return dish(p);
-    return gou(p);
+    //return gou(p);
     //return disk(p);
 
     //return archytas_curve(p);
-    //return plucker(p)*plucker(p) + sphplu(p)*sphplu(p) - 0.01;
-
-    //return plucker(p) - 0.01;
+    //return plucker(p)*plucker(p) + sphplu(p)*sphplu(p) - 0.05;
+    //return abs(sphplu(p)) - 0.01;
+    //return abs(plucker(p)) - 0.01;
+    //return max(plucker(p)*plucker(p),sphplu(p)*sphplu(p)) - 0.2;
     //return disk2(p);
     //return gyroide2(p);
     //return goursat2(p);
@@ -440,7 +477,7 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //csurf = glz();
     float dist_infin = 3.;
-    float hh = 5.2;
+    float hh = 6.;
 
     vec3 light = normalize(vec3(0.0, 1.0, -2.5)); //light
     //vec2 mo = 1.5*cos(0.5*rottime() + vec2(0,11));
@@ -452,7 +489,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 ro = vec3(0.0, 0.0, hh); // camera
     //camera rotation
     ro.yz *= rot(mo.y);
-    ro.xz *= rot(-mo.x * 1.5);//rot(-mo.x - 1.57);
+    ro.xz *= rot(-mo.x - 1.57);
 
     const float fl = 1.5; // focal length
     float dist = dist_infin;
@@ -505,11 +542,18 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             }
             if(sect == 1.0) {
                 vec3 nor = calcNormal(pos);
-                col = col2;
+                col = col2*col2;
 
                 if(dot(rd, nor) < 0.0)
                     col = col1;
 
+                /*
+                if (
+                    length(pos.xy - vec2(0.8, 0.3)) < 0.2 ||
+                    length(pos.xy - vec2(-0.8, -0.3)) < 0.2
+                )
+                    col = vec3(0.,0., 1.);
+                */    
                     //texture
                     /*
                     float tx = noise(pos*2.);
