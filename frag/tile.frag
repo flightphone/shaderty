@@ -329,7 +329,8 @@ float insole2 (vec3 p)
    
     if (x > w)
     {
-        d = length(vec2(x-w, max(abs(y)-r, 0.)));
+        //d = length(vec2(x-w, max(abs(y)-r, 0.)));
+        d = length(vec2(x-w+r, y)) - r*sqrt(2.)+0.007;
     }
     
     vec2 w2 = vec2(d, abs(z) - h);
@@ -358,7 +359,7 @@ float heel2(vec3 p)
 float strap2(vec3 p)
 {
     p.x += 1.;
-    p.z -= .85;
+    p.z -= 1.;
     float r = 0.7, h = 0.5;
     float d = abs(length(p.xy) - r);
     if (p.x < 0.)
@@ -376,6 +377,57 @@ float sh(vec3 p)
     d = smin(d, strap2(p.zyx), 0.01);
     return d;
 }
+
+float sdEllipse( in vec2 p, in vec2 ab )
+{
+    p = abs(p); if( p.x > p.y ) {p=p.yx;ab=ab.yx;}
+    float l = ab.y*ab.y - ab.x*ab.x;
+    float m = ab.x*p.x/l;      float m2 = m*m; 
+    float n = ab.y*p.y/l;      float n2 = n*n; 
+    float c = (m2+n2-1.0)/3.0; float c3 = c*c*c;
+    float q = c3 + m2*n2*2.0;
+    float d = c3 + m2*n2;
+    float g = m + m*n2;
+    float co;
+    if( d<0.0 )
+    {
+        float h = acos(q/c3)/3.0;
+        float s = cos(h);
+        float t = sin(h)*sqrt(3.0);
+        float rx = sqrt( -c*(s + t + 2.0) + m2 );
+        float ry = sqrt( -c*(s - t + 2.0) + m2 );
+        co = (ry+sign(l)*rx+abs(g)/(rx*ry)- m)/2.0;
+    }
+    else
+    {
+        float h = 2.0*m*n*sqrt( d );
+        float s = sign(q+h)*pow(abs(q+h), 1.0/3.0);
+        float u = sign(q-h)*pow(abs(q-h), 1.0/3.0);
+        float rx = -s - u - c*4.0 + 2.0*m2;
+        float ry = (s - u)*sqrt(3.0);
+        float rm = sqrt( rx*rx + ry*ry );
+        co = (ry/sqrt(rm-rx)+2.0*g/rm-m)/2.0;
+    }
+    vec2 r = ab * vec2(co, sqrt(1.0-co*co));
+    return length(r-p) * sign(p.y-r.y);
+}
+
+float tube(vec3 p)
+{
+    
+    float h = 4., r = .8;
+    p.z += h/2.;
+    if (p.z < 0.)
+        return length(vec3(p.z, max(abs(p.x)-r, 0.), p.y));
+    if (p.z > h)
+        //return length(vec2(p.z-h, max(length(p.xy)-r, 0.)));
+        return length(p - vec3(0, 0, h-r)) - (r-0.01)*sqrt(2.);
+    
+    return sdEllipse(p.xy, vec2(r, r*p.z/h));    
+
+   
+}
+
 float map(vec3 p) {
     //return umb(p);
     //return halloween(p);
@@ -388,7 +440,8 @@ float map(vec3 p) {
     //return insole (p);
     //return strep(p);
     //return min(heel(p), insole (p));
-    return sh(p.xzy);
+    //return sh(p.xzy); //heels
+    return tube(p)-0.03;
     
 
 }
