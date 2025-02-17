@@ -29,8 +29,18 @@ float sdArc(vec2 p, float r, float a0, float a1)
     vec2 p1 = vec2(r*cos(a1), r*sin(a1));
 
     float a = mod(atan(p.y, p.x), TAU);
-    //float a = atan(p.y, p.x);
     if (a > a0 && a < a1)
+        return abs(length(p) - r);   
+    return min(length(p0-p), length(p1-p)); 
+}
+
+float sdArc2(vec2 p, float r, float a0, float a1)
+{
+    vec2 p0 = vec2(r*cos(a0), r*sin(a0));
+    vec2 p1 = vec2(r*cos(a1), r*sin(a1));
+
+    float a = mod(atan(p.y, p.x), TAU);
+    if (!(a > a0 && a < a1))
         return abs(length(p) - r);   
     return min(length(p0-p), length(p1-p)); 
 }
@@ -100,7 +110,7 @@ vec3 vi4(vec2 p, float w1, float h1, float k)
     d1 = sdSegment(p, vec2(x5, 0), vec2(x5, y3)) - dd;
     col = curColor(d1, col, col1, dd);
 
-    float y6 = 177./h1;
+    float y6 = 188./h1;
     d1 = sdSegment(p, vec2(x1, y6), vec2(x2, y6)) - dd;
     col = curColor(d1, col, col1, dd);
 
@@ -146,8 +156,61 @@ vec3 vi4(vec2 p, float w1, float h1, float k)
     
     //===================romb=====================
 
+    //====================floor 0==================
+    float mir = 0.;
+    if (p.x > k/2.)
+    {
+        mir = 1.;
+        p.x = k - p.x;
+    }
+    
+    float xr0 = 15./h1, yr0 = 150./h1, rr0 = 45./h1, xr1 = 75./h1, yr1 = 143./h1,
+    rr1 = length(vec2(xr0, yr0) - vec2(xr1, yr1)) - rr0,
+    xr2 = 60./h1, yr2 = 176./h1;
+    //177 - 146
+    a0 = asin((y6-yr0)/rr0);
+    cnt = vec2(xr0, yr0) + rr0*vec2(cos(a0), sin(a0));
+    float rr2 = length(vec2(xr2, yr2) - cnt);
+    if (length(p - vec2(xr1, yr1)) - rr1 < 0.)
+    {
+        float cs = length(p - vec2(xr1, yr1));
+        float rr = rr1*2.;
+        cs = clamp(sqrt(rr*rr - cs*cs)/rr, 0.2, 1.);
+        col = col2*cs;
+        col = col2;
+        
+    }
+    if (length(p - vec2(xr2, yr2)) - rr2 < 0. 
+    && length(p - vec2(xr0, yr0)) - rr0 > 0.)
+    {
+        float cs = length(p - vec2(xr2, yr2));
+        float rr = rr2*2.;
+        cs = clamp(sqrt(rr*rr - cs*cs)/rr, 0.2, 1.);
+        col = col2*cs;
+        col = col2;
+        
+    }
+
+    
+    a1 = TAU - atan(yr0-yr1, xr1 - xr0);
+    d1 = sdArc2(p - vec2(xr0, yr0), rr0, a0, a1) - dd2;
+    
+    a0 = PI - atan(yr0-yr1, xr1 - xr0);
+    a1 = TAU;
+    d1 = min(sdArc(p - vec2(xr1, yr1), rr1, a0, a1) - dd2, d1);
+    
+    a1 = PI - atan(cnt.y - yr2, xr2 - cnt.x);
+    a0 = 0.;
+    d1 = min(sdArc(p - vec2(xr2, yr2), rr2, a0, a1) - dd2, d1);
+    
+    col = curColor(d1, col, col1, dd2);
+
+    if (mir == 1.)
+        p.x = k - p.x;
+
+
     //=====================floor===================
-    float yl = 163./h1, rl = 20./h1, al = PI/10.;
+    float yl = 163./h1, rl = 21./h1, al = PI/11.;
     vec2 ver = vec2(k/2., yl) + vec2(0., rl/cos(PI/2. - al));
     d1 = length(p - vec2(k/2., yl)) - rl;
     if (d1 < 0.)
