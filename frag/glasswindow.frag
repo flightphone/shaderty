@@ -171,24 +171,25 @@ vec3 vi4(vec2 p, float w1, float h1, float k)
     a0 = asin((y6-yr0)/rr0);
     cnt = vec2(xr0, yr0) + rr0*vec2(cos(a0), sin(a0));
     float rr2 = length(vec2(xr2, yr2) - cnt);
+
+    float rr3 = yr2 - yr1 + rr1 + rr2;
+    float yr3 = yr2 + rr2 - rr3, xr3 = (xr2 + xr1)/2.;
+    rr3 *= 1.2;
+
     if (length(p - vec2(xr1, yr1)) - rr1 < 0.)
     {
-        float cs = length(p - vec2(xr1, yr1));
-        float rr = rr1*2.;
-        cs = clamp(sqrt(rr*rr - cs*cs)/rr, 0.2, 1.);
+        float cs = length(p - vec2(xr3, yr3));
+        float rr = rr3;
+        cs = sqrt(rr*rr - cs*cs)/rr;
         col = col2*cs;
-        col = col2;
-        
     }
     if (length(p - vec2(xr2, yr2)) - rr2 < 0. 
     && length(p - vec2(xr0, yr0)) - rr0 > 0.)
     {
-        float cs = length(p - vec2(xr2, yr2));
-        float rr = rr2*2.;
-        cs = clamp(sqrt(rr*rr - cs*cs)/rr, 0.2, 1.);
+        float cs = length(p - vec2(xr3, yr3));
+        float rr = rr3;
+        cs = sqrt(rr*rr - cs*cs)/rr;
         col = col2*cs;
-        col = col2;
-        
     }
 
     
