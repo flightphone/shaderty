@@ -20,6 +20,7 @@ uniform sampler2D u_tex1;
 
 #define PI  3.14159265359
 #define TAU 6.28318530718
+#define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
 
 
 
@@ -54,6 +55,18 @@ float sdSegment( in vec2 p, in vec2 a, in vec2 b )
     vec2 pa = p-a, ba = b-a;
     float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
     return length( pa - ba*h );
+}
+
+// signed distance to a 2D triangle
+float sdTriangleIsosceles( in vec2 p, in vec2 q )
+{
+    p.x = abs(p.x);
+	vec2 a = p - q*clamp( dot(p,q)/dot(q,q), 0.0, 1.0 );
+    vec2 b = p - q*vec2( clamp( p.x/q.x, 0.0, 1.0 ), 1.0 );
+    float k = sign( q.y );
+    float d = min(dot( a, a ),dot(b, b));
+    float s = max( k*(p.x*q.y-p.y*q.x),k*(p.y-q.y)  );
+	return sqrt(d)*sign(s);
 }
 
 vec3 grid0(vec2 p, float k)
@@ -195,7 +208,7 @@ vec3 vi4(vec2 p, float k)
     float dd = 3./w1*k;
     vec3 col = vec3(0.78, 0.78, 0.53);
     vec3 col1 = vec3(0.95, 0.87, 0.6);
-    vec3 col2 = vec3(0.12, 0.96, 1.);
+    vec3 col2 = vec3(0.35, 0.96, 0.97);
     float x1 = 14./w1*k;
     float d1 = abs(p.x - x1) - dd;
     col = curColor(d1, col, col1, dd);
@@ -241,9 +254,12 @@ vec3 vi4(vec2 p, float k)
     && abs(p.x - k/2.) < r0 && abs(p.y - y4) < r0 )
     {
         float cs = length(p - vec2(k/2., y4));
-        cs = sqrt(r0*r0/4. - cs*cs)/r0*2.;
+        float r02 = r0/1.5;
+        cs = sqrt(r02*r02 - cs*cs)/r02;
         col = col2*cs;
     }
+
+    
 
     d1 = sdArc(p - vec2(xr0, yr0), r0, 0., PI/2.) - dd;
     col = curColor(d1, col, col1, dd);
@@ -255,6 +271,40 @@ vec3 vi4(vec2 p, float k)
     col = curColor(d1, col, col1, dd);
 
     d1 = sdArc(p - vec2(xr3, yr3), r0, PI/2., PI) - dd;
+    col = curColor(d1, col, col1, dd);
+
+    float yl = 163./h1, rl = 20./h1, al = PI/8.;
+    vec2 ver = vec2(k/2., yl) + vec2(0., rl/cos(PI/2. - al));
+    dr0 = length(p - vec2(k/2., yl)) - rl;
+    if (dr0 < 0.)
+    {
+        float cs = length(p - vec2(k/2., yl));
+        cs = sqrt(rl*rl - cs*cs)/rl;
+        col = col2*cs;
+        
+    }
+    vec2 tri = vec2(rl*cos(al), - ver.y +  rl*sin(al) + yl); // width, height    
+    dr0 = sdTriangleIsosceles(p- ver, 
+    tri); 
+    vec3 nor = vec3(-cos(al), 0., sin(al));
+    if (dr0 < 0.)
+    {
+        float rl2 = abs((p.y - ver.y)/tri.y*tri.x);
+        float aa = PI/2. + asin((p.x - k/2.)/rl2);
+        nor.xy *= rot(aa);
+        float cs = dot(nor, vec3(0., -1., 0.));
+        col = col2 * cs;
+    }
+
+
+    d1 = sdArc(p - vec2(k/2., yl), rl, PI - al, 2.*PI) - dd;
+    col = curColor(d1, col, col1, dd);
+    d1 = sdArc(p - vec2(k/2., yl), rl, 0., al) - dd;
+    col = curColor(d1, col, col1, dd);
+    
+    d1 = sdSegment(p, vec2(k/2., yl) + vec2(rl*cos(al), rl*sin(al)), ver) - dd;
+    col = curColor(d1, col, col1, dd);
+    d1 = sdSegment(p, vec2(k/2., yl) + vec2(-rl*cos(al), rl*sin(al)), ver) - dd;
     col = curColor(d1, col, col1, dd);
 
     return col;
