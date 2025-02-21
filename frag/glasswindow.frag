@@ -17,11 +17,27 @@ uniform sampler2D u_tex1;
 #define texture texture2D
 
 /////=====================================================================================
-
+/*
+stained glass windows
+2D-SDF, tile, noise
+stained glass windows
+*/
 #define PI  3.14159265359
 #define TAU 6.28318530718
 #define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
 
+// Precision-adjusted variations of https://www.shadertoy.com/view/4djSRW
+float hash(float p) { p = fract(p * 0.011); p *= p + 7.5; p *= p + p; return fract(p); }
+//	<https://www.shadertoy.com/view/4dS3Wd>
+//	By Morgan McGuire @morgan3d, http://graphicscodex.com
+
+// This one has non-ideal tiling properties that I'm still tuning
+float noise(float x) {
+	float i = floor(x);
+	float f = fract(x);
+	float u = f * f * (3.0 - 2.0 * f);
+	return mix(hash(i), hash(i + 1.0), u);
+}
 
 float sdArc(vec2 p, float r, float a0, float a1)
 {
@@ -31,7 +47,19 @@ float sdArc(vec2 p, float r, float a0, float a1)
     float a = mod(atan(p.y, p.x), TAU);
     if (a > a0 && a < a1)
         return abs(length(p) - r);   
-    return min(length(p0-p), length(p1-p)); 
+    //return min(length(p0-p), length(p1-p)); 
+    return 100.;
+}
+
+
+
+
+float sdArcElips(vec2 p, float a, float b, float t0, float t1)
+{
+    float t = mod(atan(p.y/b, p.x/a), TAU);
+    if (t > t0 && t < t1)
+        return abs(p.x*p.x/a/a + p.y*p.y/b/b - 1.);   
+    return +100.;
 }
 
 float sdArc2(vec2 p, float r, float a0, float a1)
@@ -65,73 +93,108 @@ float sdTriangleIsosceles( in vec2 p, in vec2 q )
 	return sqrt(d)*sign(s);
 }
 
-vec3 curColor(float d1, vec3 col, vec3 col1, float dd)
+vec3 curColor(float d1, vec3 col, vec3 col1)
 {
     float s1 = smoothstep(0., -0.003, d1);
-    float cs = dd*dd - (dd-abs(d1))*(dd-abs(d1));
-    if (cs < 0.)
-        cs = 1.;
-    else
-        cs = sqrt(cs)/dd;  
-    vec3 colccs = col1*cs;      
-    //return  (s1>0.) ? s1*col1*cs: col;
-    return mix(col, colccs, vec3(s1));
+    return mix(col, col1, vec3(s1));
 }
 
-vec3 vi4(vec2 p, float w1, float h1, float k)
+float ticolor()
 {
-     
+    return (1. + (0.5 - noise(iTime))*1.18);
+}
+
+vec3 draw_cyrcle(vec2 p, float r, float dd, vec3 col, vec3 col1)
+{
+    float d1 = abs(length(p) - r) - dd;
+    return curColor(d1, col, col1);   
+    
+}
+
+vec3 draw_disc(vec2 p, float r, vec3 col, vec3 col1)
+{
+    float d1 = length(p) - r;
+    return curColor(d1, col, col1);   
+    //float s1 = step(d1, 0.);
+    //return mix(col, col1, vec3(s1));
+}
+
+vec3 vi4(vec2 p, float k)
+{
     p.x *=k;
-   
-    float dd = 4./w1*k;
-    vec3 col = vec3(0.78, 0.78, 0.53);
-    vec3 col1 = vec3(0.95, 0.87, 0.6);
-    vec3 col2 = vec3(0.35, 0.96, 0.97);
-    float x1 = 14./w1*k;
+    float h = 737., r1 = 135./h, dd = 35./h/2.;
+
+    vec3 col = vec3(0.3, 0.3, 0.3);
+    vec3 col1 = vec3(0.05, 0.06, 0.09);
+    vec3 col2 = vec3(0.5, 0.21, 0.1);
+    vec3 col3 = vec3(0.92, 0.81, 0.51);
+    vec3 col4 = vec3(0.64, 0.49, 0.37);
+    vec3 col5 = vec3(0.91, 0.24, 0.054);
+    vec3 col6 = vec3(0.76, 0.9, 0.98);
+    vec3 col7 = vec3(0.57, 0.52, 0.48);
+    vec3 col8 = vec3(0.5372, 0.4980, 0.2980);
+    vec3 col9 = vec3(0.7215, 0.1724, 0.0352);
+    vec3 col10 = vec3(0.9921, 0.7098, 0.1333);
+    vec2 pp = p - 0.5;
+    float rr0 = 0.5, rr1 = rr0-dd, dd2 = dd*0.65, rr2 = rr1 - dd - dd2,
+    dd3 = 0.75*dd2, rr3 = rr2 - dd2 - dd3, rr4 = rr3-dd3;
+    col = draw_disc(pp, rr0, col, col1);
+    //col = draw_cyrcle(pp, rr1, dd, col, col1);
+    col = draw_cyrcle(pp, rr2, dd2, col, col3);
+    col = draw_cyrcle(pp, rr3, dd3, col, col4);
+    col = draw_disc(pp, rr4, col, col5);
+    /*
+    float d1 = abs(length(pp) - (0.5 - dd)) - dd;
+    col = curColor(d1, col, col1);
+    */
     
-    //=====================lines==========================
-    float d1 = abs(p.x - x1) - dd;
-    col = curColor(d1, col, col1, dd);
-
-    float x2 = k - x1;
-    d1 = abs(p.x - x2) - dd;
-    col = curColor(d1, col, col1, dd);
-
-
-    float y3 = 258./h1;
-    d1 = abs(p.y - y3) - dd;
-    col = curColor(d1, col, col1, dd);
+    pp = p-0.5;
+    float n = 4., a = mod(atan(pp.y, pp.x), TAU);
+    a += PI/n;
+    float nn = floor(a/TAU*n);
+    pp.xy *= rot(-nn*TAU/n);
+    pp.xy *= rot(PI);
+    pp = pp + vec2(0.5) - vec2(0.5 - r1*sqrt(2.), 0.5);
     
-    float y4 = 39./h1;
-    d1 = sdSegment(p, vec2(x1, y4), vec2(x2, y4)) - dd;
-    col = curColor(d1, col, col1, dd);
+    
+    col = draw_disc(pp, r1+dd, col, col2);
+    float d1 = sdArc(pp, r1, PI/4., TAU - PI/4.) - dd;
+    col = curColor(d1, col, col1);
+    float r2 = r1 - dd - dd2, r3 = r2 - dd2;
+    col = draw_disc(pp, r2+0.018, col, col1);
+    col = draw_cyrcle(pp, r2, dd2, col, col6);
+    col = draw_disc(pp, r3, col, col7);
 
-    float x5 = 0.5*k;
-    d1 = sdSegment(p, vec2(x5, 0), vec2(x5, y3)) - dd;
-    col = curColor(d1, col, col1, dd);
-
-    float y6 = 188./h1;
-    d1 = sdSegment(p, vec2(x1, y6), vec2(x2, y6)) - dd;
-    col = curColor(d1, col, col1, dd);
-
-    float y7 = 106./h1;
-    d1 = sdSegment(p, vec2(x1, y7), vec2(0, y7)) - dd;
-    col = curColor(d1, col, col1, dd);
-
-    d1 = sdSegment(p, vec2(x2, y7), vec2(k, y7)) - dd;
-    col = curColor(d1, col, col1, dd);
-    //=====================lines==========================
-
-
-    //===================romb=====================
-    float r0 = (h1/2.- 88.)/h1*k;
    
-    float dd2 = dd*0.5;
-    vec2 pp = p - vec2(k/2., y4);
-    float n = 4., ta = mod(atan(pp.y, pp.x), TAU), i = floor(ta/TAU*n);
-    vec2 cnt = vec2(r0, r0);
+    r2 = r2, r3 = r2 - dd2;
+    pp = p - 0.5;
+    col = draw_disc(pp, r2+0.018, col, col1);
+    col = draw_cyrcle(pp, r2, dd2, col, col6);
+    col = draw_disc(pp, r3, col, col7);
+    float dd4 = 33./h/2., r4 = r3 - dd4, r5 = r4 - dd4;
+    col = draw_cyrcle(pp, r4, dd4, col, col8);
+    col = draw_disc(pp, r5, col, col1);
+    col = draw_disc(pp, r5-0.0018, col, col9);
+
+    float r6 = r5/2.- 0.002;
+
+    pp = p-0.5;
+    pp.xy *= rot(-nn*TAU/n);
+    pp.xy *= rot(PI);
+    pp = pp + vec2(0.5) - vec2(0.5 - r6, 0.5);
+    col = draw_disc(pp, r6, col, col10);
+    d1 = sdArc(pp, r6, PI/2., TAU - PI/2.) - 0.003;
+    col = curColor(d1, col, col1);
+    d1 = sdSegment(pp, vec2(0., r6), vec2(r6, 0.)) - 0.003;
+    d1 = min(sdSegment(pp, vec2(0., -r6), vec2(r6, 0.)) - 0.003, d1);
+    col = curColor(d1, col, col1);
+
+    
+    /*============romb================*/
+    pp = p - vec2(0.5);
+    float ta = mod(atan(pp.y, pp.x), TAU), i = floor(ta/TAU*n);
+    vec2 cnt = vec2(r5, r5);
     cnt.xy *= rot(i*PI/2.);
-    cnt += vec2(k/2., y4);
     float a0 = PI + i*PI/2., a1 = PI + (i+1.)*PI/2.;
     if (a0 >= TAU)
     {
@@ -140,120 +203,35 @@ vec3 vi4(vec2 p, float w1, float h1, float k)
     }
     
     
-    d1 = length(p - cnt) - r0;
-    if (d1 > 0. && abs(pp.x) < r0 && abs(pp.y) < r0)
+    d1 = length(pp - cnt) - r5;
+    if (d1 > 0. && abs(pp.x) < r5 && abs(pp.y) < r5)
     {
-        float cs = length(pp);
-        float r02 = r0;
-        cs = sqrt(r02*r02 - cs*cs)/r02;
-        col = col2*cs*cs;
+        col = vec3(1.);
     }        
-    
-    
-    d1 = sdArc(p - cnt, r0, a0, a1) - dd2;
-    col = curColor(d1, col, col1, dd2);
-    
-    
-    //===================romb=====================
+    d1 = sdArc(pp - cnt, r5, a0, a1) - 0.003;
+    col = curColor(d1, col, col1);
+    /*============romb================*/
 
-    //====================floor 0==================
-    float mir = 0.;
-    if (p.x > k/2.)
-    {
-        mir = 1.;
-        p.x = k - p.x;
-    }
-    
-    float xr0 = 15./h1, yr0 = 150./h1, rr0 = 45./h1, xr1 = 75./h1, yr1 = 143./h1,
-    rr1 = length(vec2(xr0, yr0) - vec2(xr1, yr1)) - rr0,
-    xr2 = 60./h1, yr2 = 176./h1;
-    //177 - 146
-    a0 = asin((y6-yr0)/rr0);
-    cnt = vec2(xr0, yr0) + rr0*vec2(cos(a0), sin(a0));
-    float rr2 = length(vec2(xr2, yr2) - cnt);
+    float r7 = r5*sqrt(2.) - r5, dd5 = 5./h, r8 = r7-dd5 - 0.002;
+    pp = p - 0.5;
+    col = draw_disc(pp, r7, col, col1);
 
-    float rr3 = yr2 - yr1 + rr1 + rr2;
-    float yr3 = yr2 + rr2 - rr3, xr3 = (xr2 + xr1)/2.;
-    rr3 *= 1.2;
+    col = draw_cyrcle(pp, r8, dd5, col, col9);
+    col = draw_disc(pp, r8-dd5, col, col10);
 
-    if (length(p - vec2(xr1, yr1)) - rr1 < 0.)
-    {
-        float cs = length(p - vec2(xr3, yr3));
-        float rr = rr3;
-        cs = sqrt(rr*rr - cs*cs)/rr;
-        col = col2*cs;
-    }
-    if (length(p - vec2(xr2, yr2)) - rr2 < 0. 
-    && length(p - vec2(xr0, yr0)) - rr0 > 0.)
-    {
-        float cs = length(p - vec2(xr3, yr3));
-        float rr = rr3;
-        cs = sqrt(rr*rr - cs*cs)/rr;
-        col = col2*cs;
-    }
-
-    
-    a1 = TAU - atan(yr0-yr1, xr1 - xr0);
-    d1 = sdArc2(p - vec2(xr0, yr0), rr0, a0, a1) - dd2;
-    
-    a0 = PI - atan(yr0-yr1, xr1 - xr0);
-    a1 = TAU;
-    d1 = min(sdArc(p - vec2(xr1, yr1), rr1, a0, a1) - dd2, d1);
-    
-    a1 = PI - atan(cnt.y - yr2, xr2 - cnt.x);
-    a0 = 0.;
-    d1 = min(sdArc(p - vec2(xr2, yr2), rr2, a0, a1) - dd2, d1);
-    
-    col = curColor(d1, col, col1, dd2);
-
-    if (mir == 1.)
-        p.x = k - p.x;
-
-
-    //=====================floor===================
-    float yl = 163./h1, rl = 21./h1, al = PI/11.;
-    vec2 ver = vec2(k/2., yl) + vec2(0., rl/cos(PI/2. - al));
-    d1 = length(p - vec2(k/2., yl)) - rl;
-    if (d1 < 0.)
-    {
-        float cs = length(p - vec2(k/2., yl));
-        cs = sqrt(rl*rl - cs*cs)/rl;
-        col = col2*cs;
-        
-    }
-    vec2 tri = vec2(rl*cos(al), - ver.y +  rl*sin(al) + yl); // width, height    
-    d1 = sdTriangleIsosceles(p- ver, 
-    tri); 
-    vec3 nor = vec3(-cos(al), 0., sin(al));
-    if (d1 < 0.)
-    {
-        float rl2 = abs((p.y - ver.y)/tri.y*tri.x);
-        float aa = PI/2. + asin((p.x - k/2.)/rl2);
-        nor.xy *= rot(aa);
-        float cs = dot(nor, vec3(0., -1., 0.));
-        col = col2 * cs;
-    }
-   
-    d1 = sdSegment(p, vec2(k/2., yl) + vec2(rl*cos(al), rl*sin(al)), ver) - dd2;
-    d1 = min(sdSegment(p, vec2(k/2., yl) + vec2(-rl*cos(al), rl*sin(al)), ver) - dd2, d1);
-
-
-    pp = p - vec2(k/2., yl);
-    pp.xy *= rot(-al);
-    d1 = min(sdArc(pp, rl, PI - 2.*al, 2.*PI) - dd2, d1);
-    col = curColor(d1, col, col1, dd2);
 
     return col;
 }
 
 //https://www.xposz.shop/?ggcid=336928
+//https://ca.pinterest.com/pin/557109416405805140/
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 	//vec2 p = (-iResolution.xy + 2.0 * fragCoord) / iResolution.xy;
     vec2 p = fragCoord / iResolution.xy;
-    float w1 = 184., h1 = 274., k = w1/h1;
+    float k = 1.0;
     float n = iResolution.x/iResolution.y/k;
     p.x = fract(p.x*n);
-    vec3 col = vi4(p, w1, h1, k);
+    vec3 col = vi4(p, k);
    
 	fragColor = vec4(col, 1.0);
 }
