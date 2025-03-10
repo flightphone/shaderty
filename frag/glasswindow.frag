@@ -148,12 +148,56 @@ vec3 draw_cyrcle(vec2 p, float r, float dd, vec3 col, vec3 col1)
     
 }
 
+float prism(vec2 p)
+{
+    p-=0.5;
+    float t = max(abs(p.x), abs(p.y));
+    return 1.0 - t;
+}
+
+float glass_h(vec2 p) {
+    
+    
+    float n = 25., k = 1./n*0.1;
+	p = fract(p*n);
+    float t = prism(p)*k;
+	return t;
+    
+ 
+}
+
+vec3 glass_norm(vec2 p)
+{
+	float h = 0.00001, dx = glass_h(p + vec2(h, 0)) - glass_h(p - vec2(h, 0)),
+	dy = glass_h(p + vec2(0, h)) - glass_h(p - vec2(0, h)), dz = -2.*h;
+	return -normalize(vec3(dx, dy, dz));
+}
+
+
 vec3 draw_disc(vec2 p, float r, vec3 col, vec3 col1)
 {
     float d1 = length(p) - r;
-    return curColor(d1, col, col1);   
-    //float s1 = step(d1, 0.);
-    //return mix(col, col1, vec3(s1));
+    col1  =  curColor(d1, col, col1);
+    return col1;
+}
+
+
+vec3 draw_disc_glass(vec2 p, float r, vec3 col, vec3 col1)
+{
+    float d1 = length(p) - r;
+       
+    vec3 norm = glass_norm(p);
+    vec3 light = normalize(vec3(sin(iTime/3.), cos(iTime/3.), 1.));
+	//vec3 light = normalize(vec3(1., 1., 1.));
+    vec3 rd = vec3(0., 0., -1.);
+    float difu = dot(norm , light);   
+    vec3 R1 = reflect (light, norm);
+    float shininess=5.0;
+    float specular    =  pow(max(dot(R1, rd), 0.), shininess);
+    col1 = col1*difu + 0.8*specular;      
+    col1 =  pow(col1, vec3(1.));
+    col1  =  curColor(d1, col, col1);
+    return col1;
 }
 
 vec3 vi4(vec2 p, float k)
@@ -192,7 +236,7 @@ vec3 vi4(vec2 p, float k)
 
     //===========================================
     col = draw_cyrcle(pp, rr3, dd3, col, col4);
-    col = draw_disc(pp, rr4, col, col5);
+    col = draw_disc_glass(pp, rr4, col, col5);
     
     
     //===========================lett cyrcle
@@ -211,7 +255,7 @@ vec3 vi4(vec2 p, float k)
     float r2 = r1 - dd - dd2, r3 = r2 - dd2;
     col = draw_disc(pp, r2+0.018, col, col1);
     col = draw_cyrcle(pp, r2, dd2, col, col6);
-    col = draw_disc(pp, r3, col, col7);
+    col = draw_disc_glass(pp, r3, col, col7);
     //======================segments======================
     ns1 = 10.; 
     float a10 = mod(atan(pp.y, pp.x), TAU);
@@ -250,7 +294,7 @@ vec3 vi4(vec2 p, float k)
     float dd4 = 33./h/2., r4 = r3 - dd4, r5 = r4 - dd4;
     col = draw_cyrcle(pp, r4, dd4, col, col8);
     col = draw_disc(pp, r5, col, col1);
-    col = draw_disc(pp, r5-0.0018, col, col9);
+    col = draw_disc_glass(pp, r5-0.0018, col, col9);
 
     float r6 = r5/2.- 0.002;
 

@@ -46,9 +46,16 @@ float hash(float p) {
 */
 float hash(float n) { return fract(sin(n) * 437558.5453123); }
 //float hash(vec2 p) {vec3 p3 = fract(vec3(p.xyx) * 0.13); p3 += dot(p3, p3.yzx + 3.333); return fract((p3.x + p3.y) * p3.z); }
+
 float hash(vec2 p) {
-	return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x))));
-}  //!!!Best
+	//return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x))));
+	return fract(1e4 * sin(117.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 133.0 + p.x))));
+} 
+
+
+
+
+ //!!!Best
 //	<https://www.shadertoy.com/view/4dS3Wd>
 //	By Morgan McGuire @morgan3d, http://graphicscodex.com
 
@@ -80,6 +87,7 @@ float noise(vec2 x) {
 }
 
 // This one has non-ideal tiling properties that I'm still tuning
+/*
 float noise(vec3 x) {
 	const vec3 step = vec3(110, 241, 171);
 
@@ -93,6 +101,41 @@ float noise(vec3 x) {
 	vec3 u = f * f * (3.0 - 2.0 * f);
 	return mix(mix(mix(hash(n + dot(step, vec3(0, 0, 0))), hash(n + dot(step, vec3(1, 0, 0))), u.x), mix(hash(n + dot(step, vec3(0, 1, 0))), hash(n + dot(step, vec3(1, 1, 0))), u.x), u.y), mix(mix(hash(n + dot(step, vec3(0, 0, 1))), hash(n + dot(step, vec3(1, 0, 1))), u.x), mix(hash(n + dot(step, vec3(0, 1, 1))), hash(n + dot(step, vec3(1, 1, 1))), u.x), u.y), u.z);
 }
+*/
+
+vec3 hash( vec3 p ) // replace this by something better
+{
+	p = vec3( dot(p,vec3(127.1,311.7, 74.7)),
+			  dot(p,vec3(269.5,183.3,246.1)),
+			  dot(p,vec3(113.5,271.9,124.6)));
+
+	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+}
+
+float noise( in vec3 p )
+{
+    vec3 i = floor( p );
+    vec3 f = fract( p );
+
+    // cubic interpolant
+    vec3 u = f*f*(3.0-2.0*f);
+
+
+    return mix( mix( mix( dot( hash( i + vec3(0.0,0.0,0.0) ), f - vec3(0.0,0.0,0.0) ), 
+                          dot( hash( i + vec3(1.0,0.0,0.0) ), f - vec3(1.0,0.0,0.0) ), u.x),
+                     mix( dot( hash( i + vec3(0.0,1.0,0.0) ), f - vec3(0.0,1.0,0.0) ), 
+                          dot( hash( i + vec3(1.0,1.0,0.0) ), f - vec3(1.0,1.0,0.0) ), u.x), u.y),
+                mix( mix( dot( hash( i + vec3(0.0,0.0,1.0) ), f - vec3(0.0,0.0,1.0) ), 
+                          dot( hash( i + vec3(1.0,0.0,1.0) ), f - vec3(1.0,0.0,1.0) ), u.x),
+                     mix( dot( hash( i + vec3(0.0,1.0,1.0) ), f - vec3(0.0,1.0,1.0) ), 
+                          dot( hash( i + vec3(1.0,1.0,1.0) ), f - vec3(1.0,1.0,1.0) ), u.x), u.y), u.z );
+}
+
+//===============================================================================================
+//===============================================================================================
+//===============================================================================================
+//===============================================================================================
+//======================================================================
 
 float fbm(float x) {
 	float v = 0.0;
@@ -444,6 +487,104 @@ vec3 wave(vec2 p) {
 	return ccol(nor);
 }
 
+vec3 glass(vec2 p) {
+    
+    float n = 30., t = noise(vec2(p*n )), n2 = 90., t2 = noise(vec2(p*n2));
+    float h1 = 0.5, k1 = 1./(1.-h1), h2 = 0.5, k2 = 1./(1.-h2);
+    float s = smoothstep(h1, h1+0.01,  t), s2 = smoothstep(h2, h2+0.01,  t2);
+    t = mix(0., (t-h1)*k1, s);
+    t2 = mix(0., (t2-h2)*k2, s2)*smoothstep(0.01, 0.0, t);
+    //t2 = t2*smoothstep(0.1, 0.11, t2);
+    t = max(t, t2);
+    return vec3(t);
+
+}
+float prism(vec2 p)
+{
+    p-=0.5;
+    float t = max(abs(p.x), abs(p.y));
+    return 1.0 - t;
+}
+
+
+float glass_h(vec2 p) {
+    
+    
+	float n = 20., t = noise(p*n), n2 = 50., t2 = noise(p*n2);
+    float h1 = 0.4, k1 = 1./(1.-h1)/n, h2 = 0.1, k2 = 1./(1.-h2)/n2*1.;
+    float s = smoothstep(h1, h1+0.05,  t);
+	float s2 = smoothstep(h2, h2+0.01,  t2);
+    t = mix(0., (t-h1)*k1, s);
+	t2 = mix(0., (t2-h2)*k2, s2)*smoothstep(0.01, 0.0, t);
+    t = max(t, t2);
+	
+	
+	//prism
+	/*
+	float n = 10., k = 1./n;
+	p = fract(p*n);
+    float t = prism(p)*k;
+	*/
+	return t;
+}
+
+vec3 glass_norm(vec2 p)
+{
+	float h = 0.00001, dx = glass_h(p + vec2(h, 0)) - glass_h(p - vec2(h, 0)),
+	dy = glass_h(p + vec2(0, h)) - glass_h(p - vec2(0, h)), dz = -2.*h;
+	return -normalize(vec3(dx, dy, dz));
+}
+
+vec3 glass_color(vec2 p)
+{
+	vec3 col = vec3(0.76, 0.9, 0.98);
+	vec3 norm = glass_norm(p);
+    //vec3 light = normalize(vec3(sin(iTime), cos(iTime), 0.2));
+	vec3 light = normalize(vec3(1., 1., 1.));
+    vec3 rd = vec3(0., 0., -1.);
+    float difu = dot(norm , light);   
+    vec3 R1 = reflect (light, norm);
+    float shininess=25.0;
+    float specular    =  pow(max(dot(R1, rd), 0.), shininess);
+    col = col*difu + 0.8*specular;      
+    return pow(col, vec3(1));
+}
+
+vec3 lines(vec2 p)
+{
+	vec3 col0 = vec3(1., 0.5, 0.5), col1 = vec3(0.5, 1., 0.5), col2 = vec3(0.5, 0.5, 1.),
+	col3 = vec3(1., 1., 0.5), col4 = vec3(1., 0.5, 1.), col5 = vec3(0.5, 1., 1.),
+	colline = vec3(0.);
+	float n = 6., n2 = 6., n3 = 3.;
+	mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+	//p.x += iTime*0.2;
+	vec2 x = p;
+	vec2 shift = vec2(0.1, 0.2)*iTime*0.2;
+	x = rot*x + shift;
+	float t = 0.7*noise(x*n3);
+	x = rot*x + shift;
+	t += 0.2*noise(x*n2);
+	p.y += t;
+	p.y *= n;
+	vec3 col = col0;
+	float ncol = mod(floor(p.y), 6.);
+	if (ncol == 1.)
+		col = col1;
+	if (ncol == 2.)		
+		col = col2;
+	if (ncol == 3.)		
+		col = col3;
+	if (ncol == 4.)		
+		col = col4;
+	if (ncol == 5.)		
+		col = col5;			
+
+	float y = fract(p.y), h = 0.1, eps = 0.03, s1 = smoothstep(1. - h - eps, 1.-h, y),	
+	s2 = smoothstep(h, h-eps, y);
+	col = mix(col, colline, s1);
+	col = mix(col, colline, s2);
+	return col;	
+}
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //vec2 p = vec2(fragCoord.x/iResolution.x, fragCoord.y/iResolution.y); //(-iResolution.xy + 2.0 * fragCoord) / iResolution.y;
@@ -460,12 +601,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 	//vec3 col = zebra(p);
 	//vec3 col = clouds(p);
 	//vec3 col = drops(p);
-	vec3 col = pearl(p*0.5 +15.);
+	//vec3 col = pearl(p*0.5 +15.);
 	//vec3 col = wave(p);
 	//vec3 col = warp(p*0.5);
 	//vec3 col = radial(p*4.);
 	//vec3 col = bull(p);
 	//vec3 col = tunnel(p);
+	//vec3 col =  glass_color(p);
+	vec3 col =  lines(p);
 	
 
 	fragColor = vec4(col, 1.0);
