@@ -550,7 +550,97 @@ vec3 glass_color(vec2 p)
     return pow(col, vec3(1));
 }
 
+float lines_h(vec2 p)
+{
+	vec3 col0 = vec3(1., 0.5, 0.5), col1 = vec3(0.5, 1., 0.5), col2 = vec3(0.5, 0.5, 1.),
+	col3 = vec3(1., 1., 0.5), col4 = vec3(1., 0.5, 1.), col5 = vec3(0.5, 1., 1.),
+	colline = vec3(0.);
+	float n = 2., n2 = 3., n3 = 1.5;
+	mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+	//p.x += iTime*0.2;
+	vec2 x = p;
+	vec2 shift = vec2(0.1, 0.2)*iTime;
+	x = rot*x + shift;
+	float t = 0.8*noise(x*n3);
+	x = rot*x;
+	t += 0.1*noise(x*n2);
+	p.y += t;
+	p.y *= n;
+	float f = abs((fract(p.y) - 0.5)/0.5);
+	float h = f * f * (3.0 - 2.0 * f);
+	return h*0.9;
+}
+
+vec3 lines_norm(vec2 p)
+{
+	float h = 0.00001, dx = lines_h(p + vec2(h, 0)) - lines_h(p - vec2(h, 0)),
+	dy = lines_h(p + vec2(0, h)) - lines_h(p - vec2(0, h)), dz = -2.*h;
+	return -normalize(vec3(dx, dy, dz));
+}
+
+vec3 lines_color(vec2 p)
+{
+	vec3 col = vec3(1., 0.7, .7);
+	vec3 norm = lines_norm(p);
+    //vec3 light = normalize(vec3(sin(iTime), cos(iTime), 0.2));
+	vec3 light = normalize(vec3(0., 0., 1.));
+    vec3 rd = vec3(1., 1., 1.);
+    float difu = dot(norm , light);   
+    vec3 R1 = reflect (light, norm);
+    float shininess=3.0;
+    float specular    =  pow(max(dot(R1, rd), 0.), shininess);
+    col = col*difu +  0.1*specular;      
+    return pow(col, vec3(0.5));
+}
+
 vec3 lines(vec2 p)
+{
+	vec3 col0 = vec3(1., 0.5, 0.5), col1 = vec3(0.5, 1., 0.5), col2 = vec3(0.5, 0.5, 1.),
+	col3 = vec3(1., 1., 0.5), col4 = vec3(1., 0.5, 1.), col5 = vec3(0.5, 1., 1.),
+	colline = vec3(0.);
+	float n = 4., n2 = 3., n3 = 2.;
+	mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+	//p.x += iTime*0.2;
+	vec2 x = p;
+	vec2 shift = vec2(0.1, 0.2);//*sin(iTime*0.2);
+	x = rot*x + shift;
+	float t = 0.8*noise(x*n3);
+	x = rot*x + shift;
+	t += 0.2*noise(x*n2);
+	p.y += t;
+	p.y *= n;
+	/*
+	float f = abs((fract(p.y) - 0.5)/0.5);
+	float h = f * f * (3.0 - 2.0 * f);
+	return vec3(h);
+	*/
+
+	
+	vec3 col = col0;
+	float ncol = mod(floor(p.y), 6.);
+	if (ncol == 1.)
+		col = col1;
+	if (ncol == 2.)		
+		col = col2;
+	if (ncol == 3.)		
+		col = col3;
+	if (ncol == 4.)		
+		col = col4;
+	if (ncol == 5.)		
+		col = col5;			
+	
+	
+	float y = fract(p.y), h = 0.1, eps = 0.03, s1 = smoothstep(1. - h - eps, 1.-h, y),	
+	s2 = smoothstep(h, h-eps, y);
+	col = mix(col, colline, s1);
+	col = mix(col, colline, s2);
+	return col;	
+	
+	
+}
+
+
+vec3 linesContrast(vec2 p)
 {
 	vec3 col0 = vec3(1., 0.5, 0.5), col1 = vec3(0.5, 1., 0.5), col2 = vec3(0.5, 0.5, 1.),
 	col3 = vec3(1., 1., 0.5), col4 = vec3(1., 0.5, 1.), col5 = vec3(0.5, 1., 1.),
@@ -608,7 +698,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 	//vec3 col = bull(p);
 	//vec3 col = tunnel(p);
 	//vec3 col =  glass_color(p);
-	vec3 col =  lines(p);
+	//vec3 col =  lines(p);
+	vec3 col = lines_color(p);
+	//vec3 col =  linesContrast(p);
 	
 
 	fragColor = vec4(col, 1.0);
