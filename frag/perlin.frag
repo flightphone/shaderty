@@ -555,9 +555,9 @@ float lines_h(vec2 p)
 	vec3 col0 = vec3(1., 0.5, 0.5), col1 = vec3(0.5, 1., 0.5), col2 = vec3(0.5, 0.5, 1.),
 	col3 = vec3(1., 1., 0.5), col4 = vec3(1., 0.5, 1.), col5 = vec3(0.5, 1., 1.),
 	colline = vec3(0.);
-	float n = 2., n2 = 3., n3 = 1.5;
+	float n = 3., n2 = 3., n3 = 1.5;
 	mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
-	//p.x += iTime*0.2;
+	p.x += iTime*0.2;
 	vec2 x = p;
 	vec2 shift = vec2(0.1, 0.2)*iTime;
 	x = rot*x + shift;
@@ -566,9 +566,9 @@ float lines_h(vec2 p)
 	t += 0.1*noise(x*n2);
 	p.y += t;
 	p.y *= n;
-	float f = abs((fract(p.y) - 0.5)/0.5);
-	float h = f * f * (3.0 - 2.0 * f);
-	return h*0.9;
+	//float f = abs((fract(p.y) - 0.5)/0.5), h = f * f * (3.0 - 2.0 * f) *0.9;
+	float f = fract(p.y), h = sin(f*PI)*0.3;
+	return h;
 }
 
 vec3 lines_norm(vec2 p)
@@ -582,9 +582,9 @@ vec3 lines_color(vec2 p)
 {
 	vec3 col = vec3(1., 0.7, .7);
 	vec3 norm = lines_norm(p);
-    //vec3 light = normalize(vec3(sin(iTime), cos(iTime), 0.2));
+    //vec3 light = normalize(vec3(sin(iTime), cos(iTime), 1.));
 	vec3 light = normalize(vec3(0., 0., 1.));
-    vec3 rd = vec3(1., 1., 1.);
+    vec3 rd = vec3(-0.2, -0.2, 1.);
     float difu = dot(norm , light);   
     vec3 R1 = reflect (light, norm);
     float shininess=3.0;
@@ -598,23 +598,20 @@ vec3 lines(vec2 p)
 	vec3 col0 = vec3(1., 0.5, 0.5), col1 = vec3(0.5, 1., 0.5), col2 = vec3(0.5, 0.5, 1.),
 	col3 = vec3(1., 1., 0.5), col4 = vec3(1., 0.5, 1.), col5 = vec3(0.5, 1., 1.),
 	colline = vec3(0.);
-	float n = 4., n2 = 3., n3 = 2.;
+	float n2 = 5., n3 = 2.;
 	mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
-	//p.x += iTime*0.2;
+	p.x += iTime*0.2;
+	float n = 4.; 
 	vec2 x = p;
 	vec2 shift = vec2(0.1, 0.2);//*sin(iTime*0.2);
 	x = rot*x + shift;
-	float t = 0.8*noise(x*n3);
-	x = rot*x + shift;
+	float t = 1.8*noise(x*n3);
+	x = rot*x; + shift;
 	t += 0.2*noise(x*n2);
+	
 	p.y += t;
 	p.y *= n;
-	/*
-	float f = abs((fract(p.y) - 0.5)/0.5);
-	float h = f * f * (3.0 - 2.0 * f);
-	return vec3(h);
-	*/
-
+	
 	
 	vec3 col = col0;
 	float ncol = mod(floor(p.y), 6.);
@@ -630,11 +627,40 @@ vec3 lines(vec2 p)
 		col = col5;			
 	
 	
-	float y = fract(p.y), h = 0.1, eps = 0.03, s1 = smoothstep(1. - h - eps, 1.-h, y),	
+	float y = fract(p.y), h = 0.06, eps = 0.02, s1 = smoothstep(1. - h - eps, 1.-h, y),	
 	s2 = smoothstep(h, h-eps, y);
 	col = mix(col, colline, s1);
 	col = mix(col, colline, s2);
 	return col;	
+	
+	
+}
+
+vec3 lines_wood(vec2 p)
+{
+	vec3 col0 = vec3(1., 0.5, 0.5), col1 = vec3(0.5, 1., 0.5), col2 = vec3(0.5, 0.5, 1.),
+	col3 = vec3(1., 1., 0.5), col4 = vec3(1., 0.5, 1.), col5 = vec3(0.5, 1., 1.),
+	colline = vec3(0.);
+	float n2 = 5., n3 = 4.;
+	mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+	p.x += iTime*0.2;
+	float n = 6.; 
+	vec2 x = vec2(p.x, p.y);
+	vec2 shift = vec2(2., 3.);//*sin(iTime*0.2);
+	x = rot*x + shift;
+	float t = 0.8*noise(x*n3);
+	x = rot*x + shift;
+	t += 0.1*noise(vec2(x*n2));
+	p.y += t;
+	p.y *= n;
+	//float y = fract(p.y);
+	p = fract(p);
+	float f = length(p - vec2(0.5));
+	float eps = 0.03, s = smoothstep(0.4, 0.4+eps, f);
+	return vec3(s);
+	
+
+	
 	
 	
 }
@@ -645,13 +671,13 @@ vec3 linesContrast(vec2 p)
 	vec3 col0 = vec3(1., 0.5, 0.5), col1 = vec3(0.5, 1., 0.5), col2 = vec3(0.5, 0.5, 1.),
 	col3 = vec3(1., 1., 0.5), col4 = vec3(1., 0.5, 1.), col5 = vec3(0.5, 1., 1.),
 	colline = vec3(0.);
-	float n = 6., n2 = 6., n3 = 3.;
+	float n = 6., n2 = 5., n3 = 3.;
 	mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
-	//p.x += iTime*0.2;
+	p.x += iTime*0.2;
 	vec2 x = p;
-	vec2 shift = vec2(0.1, 0.2)*iTime*0.2;
+	vec2 shift = vec2(0.1, 0.2);//*iTime*0.2;
 	x = rot*x + shift;
-	float t = 0.7*noise(x*n3);
+	float t = 1.2*noise(x*n3);
 	x = rot*x + shift;
 	t += 0.2*noise(x*n2);
 	p.y += t;
@@ -669,7 +695,7 @@ vec3 linesContrast(vec2 p)
 	if (ncol == 5.)		
 		col = col5;			
 
-	float y = fract(p.y), h = 0.1, eps = 0.03, s1 = smoothstep(1. - h - eps, 1.-h, y),	
+	float y = fract(p.y), h = 0.08, eps = 0.03, s1 = smoothstep(1. - h - eps, 1.-h, y),	
 	s2 = smoothstep(h, h-eps, y);
 	col = mix(col, colline, s1);
 	col = mix(col, colline, s2);
@@ -698,8 +724,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 	//vec3 col = bull(p);
 	//vec3 col = tunnel(p);
 	//vec3 col =  glass_color(p);
-	//vec3 col =  lines(p);
-	vec3 col = lines_color(p);
+	vec3 col =  lines(p);
+	//vec3 col = lines_wood(p);
+	//vec3 col = lines_color(p);
 	//vec3 col =  linesContrast(p);
 	
 
