@@ -705,6 +705,11 @@ vec3 linesContrast(vec2 p)
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //vec2 p = vec2(fragCoord.x/iResolution.x, fragCoord.y/iResolution.y); //(-iResolution.xy + 2.0 * fragCoord) / iResolution.y;
 	vec2 p = (-iResolution.xy + 2.0 * fragCoord) / iResolution.y;
+	//if  (iMouse.z > 0.0)
+    {
+        vec2 mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
+        p -= mo;
+    }
 
     /*
     float t = noise(p.x * 4.);

@@ -181,7 +181,7 @@ vec3 draw_disc_glass(vec2 p, float r, vec3 col, vec3 col1) {
 }
 
 float drog(vec2 p) {
-    float x0 = 0.05, w0 = 0.3, w1 = 0.26, y1 = 0.12;
+    float x0 = 0.04, w0 = 0.3, w1 = 0.27, y1 = 0.125;
     float d = sdSegment(p, vec2(x0, -x0), vec2(x0 + w0, -x0));
 
     float r0 = 0.025, alf0 = atan(y1, w0 - w1) + TAU, v = (length(vec2(w0 - w1, y1)) - r0) / alf0, dlt = v * TAU;
@@ -200,7 +200,7 @@ vec3 ya(vec2 p, vec3 col) {
     //vec3 col = vec3(1.);
     float d = drog(p);
     d = min(d, drog(vec2(-p.y, -p.x)));
-    float eps = 0.001, h = 0.01;
+    float eps = 0.001, h = 0.02;
     float s = smoothstep(eps, 0., d-h);
     col = mix(col, vec3(0.), s);
     return col;
@@ -208,7 +208,7 @@ vec3 ya(vec2 p, vec3 col) {
 
 vec3 ya2(vec2 p) {
     p -= 0.5;
-    vec3 col = draw_cyrcle(p, 0.48, 0.01, vec3(1.), vec3(0.));
+    vec3 col = draw_cyrcle(p, 0.49, 0.01, vec3(1.), vec3(0.));
     float a = mod(atan(p.y, p.x), TAU);
     float n = 4.; 
     float nn = floor(a/TAU*n);
@@ -247,7 +247,35 @@ vec3 vi4(vec2 p, float k) {
 
     return col;
 }
+vec3 draw_pixelLine(vec2 p, vec2 a, vec2 b, vec3 col, vec3 col1)
+{
+    float s = 0.;
+    
 
+    if ((
+        abs((p.x - a.x)/(p.y - a.y) - (b.x - a.x)/(b.y - a.y)) < 0.01 && 
+    length(p-a) <= length(b-a) && dot(p-a, b-a) > 0.
+    )
+    || p == a || p == b
+    ) 
+        s = 1.;
+    col = mix(col, col1, s);
+    return col;    
+}
+
+vec3 moz(vec2 p)
+{
+    vec3 col0 = vec3(1.), col1 = vec3(1., 0., 0.), col = col0;
+    float dlt = 1./51., x = floor(p.x/dlt), y = floor(p.y/dlt);
+    
+    col = draw_pixelLine(vec2(x, y), vec2(1., 25.), vec2(25., 49.), col, col1);
+    col = draw_pixelLine(vec2(x, y), vec2(1., 25.), vec2(25., 1.), col, col1);
+    col = draw_pixelLine(vec2(x, y), vec2(25., 1.), vec2(49., 25.), col, col1);
+    col = draw_pixelLine(vec2(x, y), vec2(25., 49.), vec2(49., 25.), col, col1);
+    //col = draw_pixelLine(vec2(x, y), vec2(0., 9.), vec2(1., 8.), col, col1);
+    return col;
+
+}
 //https://www.xposz.shop/?ggcid=336928
 //https://ca.pinterest.com/pin/557109416405805140/
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
