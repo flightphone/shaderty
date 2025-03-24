@@ -17,31 +17,6 @@ uniform sampler2D u_tex1;
 #define texture texture2D
 
 /////=====================================================================================
-/*
-national ornament
-tile, pixel, patern
-national ornament
-*/
-#define PI  3.14159265359
-#define TAU 6.28318530718
-
-vec3 draw_vert(vec2 p, vec2 a, float l, vec3 col, vec3 col1)
-{
-    float s = 0.;
-    if (p.x == a.x && p.y - a.y + 1. <= l && p.y >= a.y)
-        s = 1.;
-    col = mix(col, col1, s); 
-    return col;    
-}
-vec3 draw_hr(vec2 p, vec2 a, float l, vec3 col, vec3 col1)
-{
-    float s = 0.;
-    if (p.y == a.y && p.x - a.x + 1. <= l && p.x >= a.x)
-        s = 1.;
-    col = mix(col, col1, s); 
-    return col;    
-}
-
 vec3 draw_box(vec2 p, vec2 a, vec2 l, vec3 col, vec3 col1)
 {
     float s = 0.;
@@ -54,8 +29,6 @@ vec3 draw_box(vec2 p, vec2 a, vec2 l, vec3 col, vec3 col1)
     return col;    
 }
 
-
-
 vec3 ornament(vec2 p)
 {
     vec2 xo = vec2(1., -1.), yo = vec2(1, 1);
@@ -66,11 +39,10 @@ vec3 ornament(vec2 p)
     x = mod(pp.x, n2);
     y = mod(pp.y, n2);
     
-    
-    col = draw_hr(vec2(x, y), vec2(0., 0.), n2, col, col1);
-    col = draw_hr(vec2(x, y), vec2(0., n2-2.), n2, col, col1);
-    col = draw_vert(vec2(x, y), vec2(0., 0.), n2, col, col1);
-    col = draw_vert(vec2(x, y), vec2(n2 - 2., 0.), n2, col, col1);
+    col = draw_box(vec2(x, y), vec2(0., 0.), vec2(n2, 1.), col, col1);
+    col = draw_box(vec2(x, y), vec2(0., n2-2.), vec2(n2, 1.), col, col1);
+    col = draw_box(vec2(x, y), vec2(0., 0.), vec2(1., n2), col, col1);
+    col = draw_box(vec2(x, y), vec2(n2 - 2., 0.), vec2(1., n2), col, col1);
 
     col = draw_box(vec2(x, y), vec2(4.), vec2(2.*(n-4.) - 1.), col, col1);
     
@@ -88,16 +60,16 @@ vec3 ornament(vec2 p)
     col = draw_box(vec2(x, y), vec2(29., 39.), vec2(7.), col, col0);
     
 
-    col = draw_hr(vec2(x, y), vec2(0., 16.), 7., col, col1);
-    col = draw_hr(vec2(x, y), vec2(41., 16.), 7., col, col1);
-    col = draw_vert(vec2(x, y), vec2( 16., 0.), 7., col, col1);
-    col = draw_vert(vec2(x, y), vec2( 16., 41.), 7., col, col1);
+    col = draw_box(vec2(x, y), vec2(0., 16.), vec2(7., 1.), col, col1);
+    col = draw_box(vec2(x, y), vec2(41., 16.), vec2(7., 1.), col, col1);
+    col = draw_box(vec2(x, y), vec2( 16., 0.), vec2(1., 7.), col, col1);
+    col = draw_box(vec2(x, y), vec2( 16., 41.), vec2(1., 7.), col, col1);
     
 
-    col = draw_hr(vec2(x, y), vec2(0., 32.), 7., col, col1);
-    col = draw_hr(vec2(x, y), vec2(41., 32.), 7., col, col1);
-    col = draw_vert(vec2(x, y), vec2( 32., 0.), 7., col, col1);
-    col = draw_vert(vec2(x, y), vec2( 32., 41.), 7., col, col1);
+    col = draw_box(vec2(x, y), vec2(0., 32.), vec2(7., 1.), col, col1);
+    col = draw_box(vec2(x, y), vec2(41., 32.), vec2(7., 1.), col, col1);
+    col = draw_box(vec2(x, y), vec2( 32., 0.), vec2(1., 7.), col, col1);
+    col = draw_box(vec2(x, y), vec2( 32., 41.), vec2(1., 7.), col, col1);
 
 
     col = draw_box(vec2(x, y), vec2(13.), vec2(2.*(n-13.) - 1.), col, col0);
@@ -113,12 +85,10 @@ vec3 ornament(vec2 p)
     col = draw_box(vec2(x, y), vec2(39., 39.), vec2(3.), col, col0);
 
 
-    col = draw_hr(vec2(x, y), vec2(16., 16.), 2.*(n-16.), col, col1);
-    col = draw_hr(vec2(x, y), vec2(16., 32.), 2.*(n-16.), col, col1);
-    col = draw_vert(vec2(x, y), vec2(16., 16.), 2.*(n-16.), col, col1);
-    col = draw_vert(vec2(x, y), vec2(32., 16.), 2.*(n-16.), col, col1);
-    //col = draw_vert(vec2(x, y), vec2(0., 0.), n2, col, col1);
-    //col = draw_vert(vec2(x, y), vec2(n2 - 2., 0.), n2, col, col1);
+    col = draw_box(vec2(x, y), vec2(16., 16.), vec2(2.*(n-16.), 1.), col, col1);
+    col = draw_box(vec2(x, y), vec2(16., 32.), vec2(2.*(n-16.), 1.), col, col1);
+    col = draw_box(vec2(x, y), vec2(16., 16.), vec2(1., 2.*(n-16.)), col, col1);
+    col = draw_box(vec2(x, y), vec2(32., 16.), vec2(1., 2.*(n-16.)), col, col1);
     
     return col;
 
@@ -129,11 +99,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 p = fragCoord / iResolution.y;
     p.y -= 0.05;
     p.x -= 0.2;
+    /*
     //if  (iMouse.z > 0.0)
     {
         vec2 mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
         p -= mo;
     }
+    */
     vec3 col = ornament(p);
     fragColor = vec4(col, 1.0);
 }
