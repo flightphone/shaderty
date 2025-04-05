@@ -24,121 +24,73 @@ stained glass windows
 */
 #define PI  3.14159265359
 #define TAU 6.28318530718
-#define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
 
-// Precision-adjusted variations of https://www.shadertoy.com/view/4djSRW
-float hash(float p) { p = fract(p * 0.011); p *= p + 7.5; p *= p + p; return fract(p); }
-//	<https://www.shadertoy.com/view/4dS3Wd>
-//	By Morgan McGuire @morgan3d, http://graphicscodex.com
-
-// This one has non-ideal tiling properties that I'm still tuning
-float noise(float x) {
-	float i = floor(x);
-	float f = fract(x);
-	float u = f * f * (3.0 - 2.0 * f);
-	return mix(hash(i), hash(i + 1.0), u);
-}
-
-float sdArc(vec2 p, float r, float a0, float a1)
-{
-    vec2 p0 = vec2(r*cos(a0), r*sin(a0));
-    vec2 p1 = vec2(r*cos(a1), r*sin(a1));
-
-    float a = mod(atan(p.y, p.x), TAU);
-    if (a > a0 && a < a1)
-        return abs(length(p) - r);   
-    return min(length(p0-p), length(p1-p)); 
-}
-
-float sdArc2(vec2 p, float r, float a0, float a1)
-{
-    vec2 p0 = vec2(r*cos(a0), r*sin(a0));
-    vec2 p1 = vec2(r*cos(a1), r*sin(a1));
-
-    float a = mod(atan(p.y, p.x), TAU);
-    if (!(a > a0 && a < a1))
-        return abs(length(p) - r);   
-    return min(length(p0-p), length(p1-p)); 
-}
-
-
-float sdSegment( in vec2 p, in vec2 a, in vec2 b )
-{
-    vec2 pa = p-a, ba = b-a;
-    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
-    return length( pa - ba*h );
-}
-
-// signed distance to a 2D triangle
-float sdTriangleIsosceles( in vec2 p, in vec2 q )
-{
-    p.x = abs(p.x);
-	vec2 a = p - q*clamp( dot(p,q)/dot(q,q), 0.0, 1.0 );
-    vec2 b = p - q*vec2( clamp( p.x/q.x, 0.0, 1.0 ), 1.0 );
-    float k = sign( q.y );
-    float d = min(dot( a, a ),dot(b, b));
-    float s = max( k*(p.x*q.y-p.y*q.x),k*(p.y-q.y)  );
-	return sqrt(d)*sign(s);
-}
-
-vec3 curColor(float d1, vec3 col, vec3 col1, float dd)
-{
+vec3 curColor(float d1, vec3 col, vec3 col1, float dd) {
     float s1 = smoothstep(0., -0.003, d1);
-    float cs = dd*dd - (dd-abs(d1))*(dd-abs(d1));
-    if (cs < 0.)
+    float cs = dd * dd - (dd - abs(d1)) * (dd - abs(d1));
+    if(cs < 0.)
         cs = 1.;
     else
-        cs = sqrt(cs)/dd;  
-    vec3 colccs = col1*cs;      
-    //return  (s1>0.) ? s1*col1*cs: col;
+        cs = sqrt(cs) / dd;
+    vec3 colccs = col1 * cs;      
     return mix(col, colccs, vec3(s1));
 }
 
-float ticolor()
-{
-    return (1. + (0.5 - noise(iTime))*1.18);
-}
-
-vec3 vi4(vec2 p)
-{
-     
-    p.x *=TAU;
+vec3 vi5(vec2 p) {
+    p.x *= TAU;
     p.y -= 0.5;
-   
-    
     vec3 col = vec3(0.78, 0.78, 0.53);
-    vec3 col1 = vec3(0.2, 0.2, 0.99);
-    
-    float dd = 0.1;
-    float sign = (p.x < PI)?1.:-1.;
-    float y = 0.3*cos(p.x)*sign, alf = PI/2. - (atan(-sin(p.x)*sign, 1.));
-    float d1 = abs(p.y - y) - dd/sin(alf);
-    //float d1 = abs(abs(p.x) - abs(x)) - dd;
-    col = curColor(d1, col, col1, dd/sin(alf));
-
-    y = -0.3*cos(p.x) * sign , alf = PI/2. - (atan(sin(p.x)*sign, 1.));
-    d1 = abs(p.y - y) - dd/sin(alf);
-    col = curColor(d1, col, col1, dd/sin(alf));
-
-    
-
+    vec3 col0 = vec3(0.5, 0.5, 1.);
+    vec3 col1 = vec3(1., 0.5, 0.5);
+    vec3 col2 = vec3(0.5, 1., 0.5);
+    float dd = 0.15, k = 0.25;
+    float fa0 = 0., fa1 = -2. / 3. * PI, fa2 = -4. / 3. * PI;
+    vec3 facol0 = col0, facol1 = col1, facol2 = col2;
+    if(p.x >= PI / 3.) {
+        fa0 = -4. / 3. * PI, fa1 = 0., fa2 = -2. / 3. * PI;
+        facol0 = col2, facol1 = col0, facol2 = col1;
+    }
+    if(p.x >= 2. * PI / 3.) {
+        fa1 = -4. / 3. * PI, fa2 = 0., fa0 = -2. / 3. * PI;
+        facol1 = col2, facol2 = col0, facol0 = col1;
+    }
+    if(p.x >= PI) {
+        fa2 = -4. / 3. * PI, fa0 = 0., fa1 = -2. / 3. * PI;
+        facol2 = col2, facol0 = col0, facol1 = col1;
+    }
+    if(p.x >= 4. * PI / 3.) {
+        fa0 = -4. / 3. * PI, fa1 = 0., fa2 = -2. / 3. * PI;
+        facol0 = col2, facol1 = col0, facol2 = col1;
+    }
+    if(p.x >= 5. * PI / 3.) {
+        fa1 = -4. / 3. * PI, fa2 = 0., fa0 = -2. / 3. * PI;
+        facol1 = col2, facol2 = col0, facol0 = col1;
+    }
+    float y = k * cos(p.x + fa0), alf = PI / 2. - (atan(-sin(p.x + fa0), 1.));
+    float d1 = abs(p.y - y) - dd / sin(alf);
+    col = curColor(d1, col, facol0, dd / sin(alf));
+    y = k * cos(p.x + fa1), alf = PI / 2. - (atan(-sin(p.x + fa1), 1.));
+    d1 = abs(p.y - y) - dd / sin(alf);
+    col = curColor(d1, col, facol1, dd / sin(alf));
+    y = k * cos(p.x + fa2), alf = PI / 2. - (atan(-sin(p.x + fa2), 1.));
+    d1 = abs(p.y - y) - dd / sin(alf);
+    col = curColor(d1, col, facol2, dd / sin(alf));
     return col;
 }
 
-//https://www.xposz.shop/?ggcid=336928
-//https://ca.pinterest.com/pin/557109416405805140/
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 	//vec2 p = (-iResolution.xy + 2.0 * fragCoord) / iResolution.xy;
     vec2 p = fragCoord / iResolution.xy;
-    //p = fract(p*vec2(10., 1.));
-    p.y*=2.;
-    vec3 col = vi4(p);
-   
-	fragColor = vec4(col, 1.0);
+    float n = 3.;
+    float sign = (mod(floor(p.y*n), 2.0) - 0.5) * 2.0;
+    p.x += sign * iTime*0.05;
+    p = fract(p * vec2(3., n));
+    vec3 col = vi5(p);
+    fragColor = vec4(col, 1.0);
 }
 /////=====================================================================================
 void main() {
-	vec4 fragColor = vec4(0);
-	mainImage(fragColor, gl_FragCoord.xy);
-	gl_FragColor = fragColor;
+    vec4 fragColor = vec4(0);
+    mainImage(fragColor, gl_FragCoord.xy);
+    gl_FragColor = fragColor;
 }
