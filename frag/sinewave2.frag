@@ -107,9 +107,9 @@ vec3 vi4(vec2 p)
    
     
     vec3 col = vec3(0.78, 0.78, 0.53);
-    vec3 col1 = vec3(0.95, 0.87, 0.6);
-    vec3 col2 = vec3(0.35, 0.96, 0.97);
-    float dd = 0.05;
+    vec3 col1 = vec3(0.2, 0.2, 0.99);
+    
+    float dd = 0.1;
     float sign = (p.x < PI)?1.:-1.;
     float y = 0.3*cos(p.x)*sign, alf = PI/2. - (atan(-sin(p.x)*sign, 1.));
     float d1 = abs(p.y - y) - dd/sin(alf);
@@ -130,7 +130,8 @@ vec3 vi4(vec2 p)
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 	//vec2 p = (-iResolution.xy + 2.0 * fragCoord) / iResolution.xy;
     vec2 p = fragCoord / iResolution.xy;
-    //p = fract(p*vec2(4., 2.));
+    //p = fract(p*vec2(10., 1.));
+    p.y*=2.;
     vec3 col = vi4(p);
    
 	fragColor = vec4(col, 1.0);
