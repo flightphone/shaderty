@@ -18,9 +18,9 @@ uniform sampler2D u_tex1;
 
 /////=====================================================================================
 /*
-braid rings
-2D-SDF, tile, braid
-simple braid pattern
+endless knot
+2D_SDF,knot,endless, tibet, buddhism 
+[url]https://en.wikipedia.org/wiki/Endless_knot[/url]
 */
 #define PI  3.14159265359
 #define TAU 6.28318530718
@@ -32,8 +32,9 @@ float sdSegment(in vec2 p, in vec2 a, in vec2 b) {
     return length(pa - ba * h);
 }
 
+
 vec3 curColorN(float d1, vec3 col, vec3 col1, float dd) {
-    float s1 = smoothstep(0., -15. / iResolution.y, d1);
+    float s1 = smoothstep(0., -5. / iResolution.y, d1);
     float cs = dd * dd - (dd - abs(d1)) * (dd - abs(d1));
     if(cs < 0.) {
         cs = 1.;
@@ -47,23 +48,40 @@ vec3 curColorN(float d1, vec3 col, vec3 col1, float dd) {
     vec3 rd = vec3(0., 0., -1.);
     float difu = dot(norm, light);
     vec3 R1 = reflect(light, norm);
-    float shininess = 5.0;
+    float shininess = 15.0;
     float specular = pow(max(dot(R1, rd), 0.), shininess);
     vec3 colccs = col1 * difu + 0.8 * specular;      
-    //return  (s1>0.) ? s1*col1*cs: col;
     return mix(col, colccs, vec3(s1));
 }
+
+
+
+vec3 draw_cyrcle(vec2 p, float r, float dd, vec3 col, vec3 col1)
+{
+    float d1 = abs(length(p) - r) - dd;
+    return curColorN(d1, col, col1, dd);   
+    
+}
+
+vec3 curColor(float d1, vec3 col, vec3 col1)
+{
+    float s1 = smoothstep(0., -0.003, d1);
+    return mix(col, col1, vec3(s1));
+}
+
+vec3 draw_disc(vec2 p, float r, vec3 col, vec3 col1)
+{
+    float d1 = length(p) - r;
+    col1  =  curColor(d1, col, col1);
+    return col1;
+}
+
+
 float bridge(vec2 p0, float n, float dd)
 {
-    /*
-    float d = sdSegment(p0, vec2(0., 2. / n), vec2(1. / n, 2. / n))*n;
-    d = min(sdSegment(p0, vec2(0., 2. / n), vec2(0. / n, 1.5 / n))*n, d);
-    d = min(sdSegment(p0, vec2(1./n, 2. / n), vec2(1. / n, 1.5 / n))*n, d);
-    */
     vec2 c = vec2(0.5/n, (1. + dd) / n);
     float d = abs(length(p0 - c) - 0.5/n)*n;
     return d;
-
 }
 
 float bridge2(vec2 p0, float n, float dd)
@@ -81,17 +99,17 @@ float bridge2(vec2 p0, float n, float dd)
 }
 
 vec3 endless(vec2 p0) {
-    float n = 3., d = 10.;
-    vec3 col = vec3(1., 1., 1.);
-    vec3 col0 = vec3(0.2, 0.2, 1.);;
+    float n = 3.1, d = 10.;
+    vec3 b1 = vec3(0.23529411764705882, 0.4235294117647059, 0.7725490196078432), b2 = vec3(0.3686274509803922, 0.5725490196078431, 0.8941176470588236);
+    vec3 bg = mix(b2, b1, p0.y);  
+    vec3 col = bg;
+    vec3 col0 = vec3(222./255., 208./255., 159./255.);
+    vec3 col1 = vec3(0.3, 0.3, 1.);;
     p0.xy *= rot(-PI/4.);
     vec2 p = p0;
     p *= n;
     float numx = floor(p.x), numy = floor(p.y), num = floor(p.x) + floor(p.y);
     p = fract(p);
-
-    //vec3 col1 = vec3(1., 0.5, 0.5);
-    //vec3 col2 = vec3(0.5, 1., 0.5);
     float dd = 0.2, d2 = 10., d1 = 10.;
     if(abs(p0.x) < (1. + dd) / n && abs(p0.y) < (1. + dd) / n) {
         d1 = min(p.x, 1. - p.x);
@@ -143,9 +161,9 @@ vec3 endless(vec2 p0) {
         }
         
     }
-
-    col = curColorN(d - dd, col, col0, dd);
-    //col = curColorN(d2, col, col0, dd );
+    col = draw_disc(p0, 0.99, col, col0);  
+    col = draw_cyrcle(p0, 0.98, 0.02, col, col1);
+    col = curColorN(d - dd, col, col1, dd);
     return col;
 }
 
