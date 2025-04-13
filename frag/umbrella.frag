@@ -145,7 +145,7 @@ vec3 col0 = vec3(0.73, 0.59, 0.3);
 vec3 col1 = vec3(0.75, 0.75, 0.75);
 vec3 col2 = vec3(0.7, 0.7, 1.);
 vec3 col4 = vec3(0.9, 0.1, 0.1);
-//vec3 resColor = vec3(0.73, 0.59, 0.3);
+
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, .0, 1.)); //light

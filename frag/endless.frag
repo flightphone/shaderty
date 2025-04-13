@@ -18,13 +18,18 @@ uniform sampler2D u_tex1;
 
 /////=====================================================================================
 /*
-endless knot
-2D_SDF,knot,endless, tibet, buddhism 
-[url]https://en.wikipedia.org/wiki/Endless_knot[/url]
+amulet for good luck
+SDF,raymarching,knot,endless,tibet,buddhism,amulet 
+Fork [url]https://www.shadertoy.com/view/W3SGDK[/url], [url]https://www.shadertoy.com/view/w3SGRm[/url]
 */
 #define PI  3.14159265359
 #define TAU 6.28318530718
 #define rot(f) mat2(cos(f), -sin(f), sin(f), cos(f))
+
+const float dist_infin = 10.0;
+#define nn 128
+const float eps = 0.001;
+vec3 colf = vec3(222./255., 208./255., 159./255.);
 
 float sdSegment(in vec2 p, in vec2 a, in vec2 b) {
     vec2 pa = p - a, ba = b - a;
@@ -63,19 +68,6 @@ vec3 draw_cyrcle(vec2 p, float r, float dd, vec3 col, vec3 col1)
     
 }
 
-vec3 curColor(float d1, vec3 col, vec3 col1)
-{
-    float s1 = smoothstep(0., -0.003, d1);
-    return mix(col, col1, vec3(s1));
-}
-
-vec3 draw_disc(vec2 p, float r, vec3 col, vec3 col1)
-{
-    float d1 = length(p) - r;
-    col1  =  curColor(d1, col, col1);
-    return col1;
-}
-
 
 float bridge(vec2 p0, float n, float dd)
 {
@@ -100,11 +92,8 @@ float bridge2(vec2 p0, float n, float dd)
 
 vec3 endless(vec2 p0) {
     float n = 3.1, d = 10.;
-    vec3 b1 = vec3(0.23529411764705882, 0.4235294117647059, 0.7725490196078432), b2 = vec3(0.3686274509803922, 0.5725490196078431, 0.8941176470588236);
-    vec3 bg = mix(b2, b1, p0.y);  
-    vec3 col = bg;
-    vec3 col0 = vec3(222./255., 208./255., 159./255.);
     vec3 col1 = vec3(0.3, 0.3, 1.);;
+    vec3 col = colf;
     p0.xy *= rot(-PI/4.);
     vec2 p = p0;
     p *= n;
@@ -161,18 +150,168 @@ vec3 endless(vec2 p0) {
         }
         
     }
-    col = draw_disc(p0, 0.99, col, col0);  
+    //col = draw_disc(p0, 0.99, col, col0);  
     col = draw_cyrcle(p0, 0.98, 0.02, col, col1);
     col = curColorN(d - dd, col, col1, dd);
     return col;
 }
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
-    vec2 p = (2.0 * fragCoord - iResolution.xy) / iResolution.y;
-    vec3 col = endless(p);
-    fragColor = vec4(col, 1.0);
+vec3 vi5(vec2 p) {
+    p.x *= TAU;
+    vec3 col = colf;
+    vec3 col0 = vec3(0.5, 0.5, 1.);
+    vec3 col1 = vec3(1., 0.5, 0.5);
+    vec3 col2 = vec3(0.5, 1., 0.5);
+    float dd = 0.15, k = 0.25;
+    float fa0 = 0., fa1 = -2. / 3. * PI, fa2 = -4. / 3. * PI;
+    vec3 facol0 = col0, facol1 = col1, facol2 = col2;
+    if(p.x >= PI / 3.) {
+        fa0 = -4. / 3. * PI, fa1 = 0., fa2 = -2. / 3. * PI;
+        facol0 = col2, facol1 = col0, facol2 = col1;
+    }
+    if(p.x >= 2. * PI / 3.) {
+        fa1 = -4. / 3. * PI, fa2 = 0., fa0 = -2. / 3. * PI;
+        facol1 = col2, facol2 = col0, facol0 = col1;
+    }
+    if(p.x >= PI) {
+        fa2 = -4. / 3. * PI, fa0 = 0., fa1 = -2. / 3. * PI;
+        facol2 = col2, facol0 = col0, facol1 = col1;
+    }
+    if(p.x >= 4. * PI / 3.) {
+        fa0 = -4. / 3. * PI, fa1 = 0., fa2 = -2. / 3. * PI;
+        facol0 = col2, facol1 = col0, facol2 = col1;
+    }
+    if(p.x >= 5. * PI / 3.) {
+        fa1 = -4. / 3. * PI, fa2 = 0., fa0 = -2. / 3. * PI;
+        facol1 = col2, facol2 = col0, facol0 = col1;
+    }
+    float y = k * cos(p.x + fa0), alf = PI / 2. - (atan(-sin(p.x + fa0), 1.));
+    float d1 = abs(p.y - y) - dd / sin(alf);
+    col = curColorN(d1, col, facol0, dd / sin(alf));
+    y = k * cos(p.x + fa1), alf = PI / 2. - (atan(-sin(p.x + fa1), 1.));
+    d1 = abs(p.y - y) - dd / sin(alf);
+    col = curColorN(d1, col, facol1, dd / sin(alf));
+    y = k * cos(p.x + fa2), alf = PI / 2. - (atan(-sin(p.x + fa2), 1.));
+    d1 = abs(p.y - y) - dd / sin(alf);
+    col = curColorN(d1, col, facol2, dd / sin(alf));
+    return col;
 }
+
+vec3 vi6(vec3 p)
+{
+    float h = 0.2, n = 15., d = TAU/n;
+    p.xy *= rot(iTime*0.1);
+
+    float x = fract(mod(atan(p.y, p.x), TAU)/d);
+    float y = (p.z)/h;
+    vec3 col = vi5(vec2(x, y) );
+    return col;
+
+}
+
+
+float sdRoundedCylinder( vec3 p, float ra, float rb, float h )
+{
+  vec2 d = vec2( length(p.xz)-2.0*ra+rb, abs(p.y) - h );
+  return min(max(d.x,d.y),0.0) + length(max(d,0.0)) - rb;
+}
+
+float map(vec3 p) {
+    return sdRoundedCylinder(p.xzy, 0.5, 0.03, 0.1);
+}
+
+// https://iquilezles.org/articles/normalsSDF
+vec3 calcNormal(in vec3 pos) {
+    const float h = 0.0001; // replace by an appropriate value
+    const vec2 k = vec2(1, -1);
+    return normalize(k.xyy * map(pos + k.xyy * h) +
+        k.yyx * map(pos + k.yyx * h) +
+        k.yxy * map(pos + k.yxy * h) +
+        k.xxx * map(pos + k.xxx * h));
+}
+
+vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
+    vec3 f = normalize(l - p), r = normalize(vec3(f.z, 0, -f.x)), u = cross(f, r), c = f * z, i = c + uv.x * r + uv.y * u;
+    return normalize(i);
+}
+/*
+#if HW_PERFORMANCE==0
+#define AA 1
+#else
+#define AA 2
+#endif
+*/
+#define AA 2
+
+
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    vec3 light = normalize(vec3(0.0, 1.0, 1.)); //light
+    vec3 light2 = normalize(vec3(0.0, -1.0, -1.)); //light
+    //vec2 mo = 1.5 * cos(0.5 * iTime + vec2(0, 11));
+    vec2 mo = vec2(-iTime*0.2, 0.);
+    //if  (iMouse.z > 0.0)
+    /*
+    {
+        mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
+        mo*=1.7;
+    }
+    */
+    
+    vec3 ro = vec3(0.0, 0.0, 1.85); // camera
+    //camera rotation
+    ro.yz *= rot(mo.y);
+    ro.xz *= rot(-mo.x - 1.57);
+
+    const float fl = 1.5; // focal length
+    float dist = dist_infin;
+
+    vec3 b1 = vec3(0.23529411764705882, 0.4235294117647059, 0.7725490196078432), b2 = vec3(0.3686274509803922, 0.5725490196078431, 0.8941176470588236);
+    vec3 bg = mix(b2, b1, fragCoord.y / iResolution.y);  
+    //antialiasing
+    vec3 tot = vec3(0.0);
+    for(int m = 0; m < AA; m++) for(int n = 0; n < AA; n++) {
+            vec2 o = vec2(float(m), float(n)) / float(AA) - 0.5;
+            vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
+            vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
+            vec3 col = bg; // background  
+            
+            //==========================raymatch=============================
+            float td = 0.;
+            vec3 pos = vec3(0.);
+            for(int i = 0; i < nn; i++) {
+                pos = ro + rd * td;
+                float h = map(pos);
+                if(h < eps || td >= dist_infin)
+                    break;
+                td += h;
+            }
+            if(td < dist_infin) {
+                
+                if (length(pos.xy) <=1.)
+                    col = endless(pos.xy);
+                else
+                    col = vi6(pos);    
+
+                vec3 nor = calcNormal(pos);
+                vec3 R = reflect(light, nor);
+                float specular = pow(max(abs(dot(R, rd)), 0.), 55.);
+                float difu = abs(dot(nor, light));
+                col = col * (clamp(difu, 0., 1.0) + 0.5) + vec3(1., .7, .4) * specular;
+                float fre = pow(clamp(dot(nor, rd) + 1., .0, 1.), 3.); // Fresnel, for some mild glow.
+                col += vec3(.1, .1, 0.1) * fre; //?
+                col = sqrt(col);
+            }
+            //==========================raymatch=============================
+            tot += col;
+        }
+    tot = tot / float(AA) / float(AA);
+    //tot = tot / float(AA);
+    //antialiasing
+    fragColor = vec4(tot, 1.0);
+}
+
 /////=====================================================================================
 void main() {
     vec4 fragColor = vec4(0);
