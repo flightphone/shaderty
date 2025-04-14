@@ -53,7 +53,7 @@ vec3 curColorN(float d1, vec3 col, vec3 col1, float dd) {
     //return  (s1>0.) ? s1*col1*cs: col;
     return mix(col, colccs, vec3(s1));
 }
-float bridge(vec2 p0, float n)
+float bridge(vec2 p0, float n, float dd)
 {
     float d = sdSegment(p0, vec2(0., 2. / n), vec2(1. / n, 2. / n))*n;
     d = min(sdSegment(p0, vec2(0., 2. / n), vec2(0. / n, 1.5 / n))*n, d);
@@ -62,7 +62,7 @@ float bridge(vec2 p0, float n)
 
 }
 
-float bridge2(vec2 p0, float n)
+float bridge2(vec2 p0, float n, float dd)
 {
     float d = sdSegment(p0, vec2(-2./n, 2. / n), vec2(-1. / n, 2. / n))*n;
     d = min(sdSegment(p0, vec2(-2./n, 2. / n), vec2(-2. / n, 1. / n))*n, d);
@@ -73,9 +73,9 @@ float bridge2(vec2 p0, float n)
 }
 
 vec3 endless(vec2 p0) {
-    float n = 3., d = 10.;
+    float n = 2.5, d = 10.;
     vec3 col = vec3(1., 1., 1.);
-    vec3 col0 = vec3(0.5, 0.1, 1.);;
+    vec3 col1 = vec3(0.5, 0.1, 1.);;
     p0.xy *= rot(-PI/4.);
     vec2 p = p0;
     p *= n;
@@ -84,7 +84,7 @@ vec3 endless(vec2 p0) {
 
     //vec3 col1 = vec3(1., 0.5, 0.5);
     //vec3 col2 = vec3(0.5, 1., 0.5);
-    float dd = 0.125, d2 = 10., d1 = 10.;
+    float dd = 0.2, d2 = 10., d1 = 10.;
     if(abs(p0.x) < (2. - dd) / n && abs(p0.y) < (2. - dd) / n) {
         d1 = min(p.x, 1. - p.x);
         d2 = min(p.y, 1. - p.y);
@@ -110,32 +110,44 @@ vec3 endless(vec2 p0) {
                 num += 1.;
             }
             if(mod(num, 2.0) == 0.)
-                d = d1;
+            {
+                //d = d1;
+                col = curColorN(d1 - dd, col, col1, dd);
+                col = curColorN(d2 - dd, col, col1, dd);
+            }
             else
-                d = d2;
+            {
+                //d = d2;
+                col = curColorN(d2 - dd, col, col1, dd);
+                col = curColorN(d1 - dd, col, col1, dd);
+            }
+        }
+        else
+        {
+            col = curColorN(d - dd, col, col1, dd);
         }
     } else {
         if (p0.y > 0.)
-            d = min(d, bridge(p0, n));
+            d = min(d, bridge(p0, n, dd));
         if (p0.y < 0.)    
-            d = min(d, bridge(vec2(-p0.x, -p0.y), n));
+            d = min(d, bridge(vec2(-p0.x, -p0.y), n, dd));
         if (p0.x > 0.)
-            d = min(d, bridge(vec2(p0.y, p0.x), n));    
+            d = min(d, bridge(vec2(p0.y, p0.x), n, dd));    
         if (p0.x < 0.)
-            d = min(d, bridge(vec2(-p0.y, -p0.x), n));  
+            d = min(d, bridge(vec2(-p0.y, -p0.x), n, dd));  
 
+        
         if (p0.x < 0. && p0.y > 0.)          
         {
-            d = min(bridge2(p0, n), d);
+            d = min(bridge2(p0, n, dd), d);
         }
         if (p0.x > 0. && p0.y < 0.)          
         {
-            d = min(bridge2(-p0, n), d);
+            d = min(bridge2(-p0, n, dd), d);
         }
+        col = curColorN(d - dd, col, col1, dd);
+        
     }
-
-    col = curColorN(d - dd, col, col0, dd);
-    //col = curColorN(d2, col, col0, dd );
     return col;
 }
 
