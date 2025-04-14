@@ -306,12 +306,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                     float s = smoothstep(0.98, 1., d);
                     col = mix(col1, col2, vec3(s));
                 }
-                /*
-                if (length(pos.xy) < 1.)
-                    col = endless(pos.xy);
-                else
-                    col = vi6(pos);    
-                */    
+                
 
                 vec3 nor = calcNormal(pos);
                 vec3 R = reflect(light, nor);
@@ -320,7 +315,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 col = col * (clamp(difu, 0., 1.0) + 0.5) + vec3(1., .7, .4) * specular;
                 float fre = pow(clamp(dot(nor, rd) + 1., .0, 1.), 3.); // Fresnel, for some mild glow.
                 col += vec3(.1, .1, 0.1) * fre; //?
-                col = sqrt(col);
+                //col = sqrt(col);
             }
             //==========================raymatch=============================
             tot += col;
