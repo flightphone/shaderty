@@ -29,14 +29,13 @@ Fork [url]https://www.shadertoy.com/view/W3SGDK[/url], [url]https://www.shaderto
 const float dist_infin = 10.0;
 #define nn 128
 const float eps = 0.001;
-vec3 colf = vec3(222./255., 208./255., 159./255.);
+vec3 colf = vec3(222. / 255., 208. / 255., 159. / 255.);
 
 float sdSegment(in vec2 p, in vec2 a, in vec2 b) {
     vec2 pa = p - a, ba = b - a;
     float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
     return length(pa - ba * h);
 }
-
 
 vec3 curColorN(float d1, vec3 col, vec3 col1, float dd) {
     float s1 = smoothstep(0., -5. / iResolution.y, d1);
@@ -55,51 +54,50 @@ vec3 curColorN(float d1, vec3 col, vec3 col1, float dd) {
     vec3 R1 = reflect(light, norm);
     float shininess = 15.0;
     float specular = pow(max(dot(R1, rd), 0.), shininess);
-    vec3 colccs = col1 * difu + 0.8 * specular;      
+    vec3 colccs = col1 * difu + 0.8 * specular;
     return mix(col, colccs, vec3(s1));
 }
 
-
-
-vec3 draw_cyrcle(vec2 p, float r, float dd, vec3 col, vec3 col1)
-{
+vec3 draw_cyrcle(vec2 p, float r, float dd, vec3 col, vec3 col1) {
     float d1 = abs(length(p) - r) - dd;
-    return curColorN(d1, col, col1, dd);   
-    
+    return curColorN(d1, col, col1, dd);
+
 }
 
-
-float bridge(vec2 p0, float n, float dd)
-{
-    vec2 c = vec2(0.5/n, (1. + dd) / n);
-    float d = abs(length(p0 - c) - 0.5/n)*n;
+float bridge(vec2 p0, float n, float dd) {
+    vec2 c = vec2(0.5 / n, (1. + dd) / n);
+    float d = abs(length(p0 - c) - 0.5 / n) * n;
     return d;
 }
 
-float bridge2(vec2 p0, float n, float dd)
-{
-    float d = sdSegment(p0, vec2(-1./n, 1. / n), vec2(-1. / n, 1.5 / n))*n;
-    d = min(sdSegment(p0, vec2(-1./n, 1. / n), vec2(-1.5 / n, 1. / n))*n, d);
-    
-    vec2 c = p0 - vec2(-1.5/n, 1.5/n);
+float bridge2(vec2 p0, float n, float dd) {
+    float d = sdSegment(p0, vec2(-1. / n, 1. / n), vec2(-1. / n, 1.5 / n)) * n;
+    d = min(sdSegment(p0, vec2(-1. / n, 1. / n), vec2(-1.5 / n, 1. / n)) * n, d);
+
+    vec2 c = p0 - vec2(-1.5 / n, 1.5 / n);
     float a = mod(atan(c.y, c.x), TAU);
-    if (a <= 1.5*PI)
-        d = min(d, abs(length(c) - 0.5/n)*n);
-    
+    if(a <= 1.5 * PI)
+        d = min(d, abs(length(c) - 0.5 / n) * n);
+
     return d;
 
 }
 
 vec3 endless(vec2 p0) {
     float n = 3.1, d = 10.;
-    vec3 col1 = vec3(0.3, 0.3, 1.);;
+    vec3 col1 = vec3(0.3, 0.3, 1.);
+    ;
     vec3 col = colf;
-    p0.xy *= rot(-PI/4.);
+    p0.xy *= rot(-PI / 4.);
     vec2 p = p0;
     p *= n;
     float numx = floor(p.x), numy = floor(p.y), num = floor(p.x) + floor(p.y);
     p = fract(p);
     float dd = 0.2, d2 = 10., d1 = 10.;
+    
+    col = draw_cyrcle(p0, 0.98, 0.02, col, col1);
+    
+
     if(abs(p0.x) < (1. + dd) / n && abs(p0.y) < (1. + dd) / n) {
         d1 = min(p.x, 1. - p.x);
         d2 = min(p.y, 1. - p.y);
@@ -124,10 +122,22 @@ vec3 endless(vec2 p0) {
                 d1 = 1. - p.x;
                 num += 1.;
             }
-            if(mod(num, 2.0) == 0.)
-                d = d1;
+            if(mod(num, 2.0) == 1.)
+            {
+                //d = d1;
+                col = curColorN(d1 - dd, col, col1, dd);
+                col = curColorN(d2 - dd, col, col1, dd);
+            }
             else
-                d = d2;
+            {
+                //d = d2;
+                col = curColorN(d2 - dd, col, col1, dd);
+                col = curColorN(d1 - dd, col, col1, dd);
+            }
+        }
+        else
+        {
+            col = curColorN(d - dd, col, col1, dd);
         }
     } else {
         if (p0.y > 0.)
@@ -148,14 +158,14 @@ vec3 endless(vec2 p0) {
         {
             d = min(bridge2(-p0, n, dd), d);
         }
+        col = curColorN(d - dd, col, col1, dd);
         
     }
-    //col = draw_disc(p0, 0.99, col, col0);  
-    col = draw_cyrcle(p0, 0.98, 0.02, col, col1);
-    col = curColorN(d - dd, col, col1, dd);
+    
+    
+    
     return col;
 }
-
 
 vec3 vi5(vec2 p) {
     p.x *= TAU;
@@ -198,23 +208,20 @@ vec3 vi5(vec2 p) {
     return col;
 }
 
-vec3 vi6(vec3 p)
-{
-    float h = 0.2, n = 15., d = TAU/n;
-    p.xy *= rot(iTime*0.1);
+vec3 vi6(vec3 p) {
+    float h = 0.2, n = 15., d = TAU / n;
+    p.xy *= rot(iTime * 0.1);
 
-    float x = fract(mod(atan(p.y, p.x), TAU)/d);
-    float y = (p.z)/h;
-    vec3 col = vi5(vec2(x, y) );
+    float x = fract(mod(atan(p.y, p.x), TAU) / d);
+    float y = (p.z) / h;
+    vec3 col = vi5(vec2(x, y));
     return col;
 
 }
 
-
-float sdRoundedCylinder( vec3 p, float ra, float rb, float h )
-{
-  vec2 d = vec2( length(p.xz)-2.0*ra+rb, abs(p.y) - h );
-  return min(max(d.x,d.y),0.0) + length(max(d,0.0)) - rb;
+float sdRoundedCylinder(vec3 p, float ra, float rb, float h) {
+    vec2 d = vec2(length(p.xz) - 2.0 * ra + rb, abs(p.y) - h);
+    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - rb;
 }
 
 float map(vec3 p) {
@@ -244,21 +251,20 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 */
 #define AA 2
 
-
-
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 light = normalize(vec3(0.0, 1.0, 1.)); //light
     vec3 light2 = normalize(vec3(0.0, -1.0, -1.)); //light
     //vec2 mo = 1.5 * cos(0.5 * iTime + vec2(0, 11));
-    vec2 mo = vec2(-iTime*0.2, 0.);
+    vec2 mo = vec2(-iTime * 0.2, 0.);
+    
     //if  (iMouse.z > 0.0)
-    /*
+   
     {
         mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
         mo*=1.7;
     }
-    */
-    
+   
+
     vec3 ro = vec3(0.0, 0.0, 1.85); // camera
     //camera rotation
     ro.yz *= rot(mo.y);
@@ -276,7 +282,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord + o)) / iResolution.y;
             vec3 rd = GetRayDir(p, ro, vec3(0, 0., 0), fl); //ray direction
             vec3 col = bg; // background  
-            
+
             //==========================raymatch=============================
             float td = 0.;
             vec3 pos = vec3(0.);
@@ -288,11 +294,24 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 td += h;
             }
             if(td < dist_infin) {
-                
-                if (length(pos.xy) <=1.)
+
+                float d = length(pos.xy);
+                if(d < 0.98)
+                    col = endless(pos.xy);
+                else if(d > 1.0)
+                    col = vi6(pos);
+                else {
+                    vec3 col1 = endless(pos.xy);
+                    vec3 col2 = vi6(pos);
+                    float s = smoothstep(0.98, 1., d);
+                    col = mix(col1, col2, vec3(s));
+                }
+                /*
+                if (length(pos.xy) < 1.)
                     col = endless(pos.xy);
                 else
                     col = vi6(pos);    
+                */    
 
                 vec3 nor = calcNormal(pos);
                 vec3 R = reflect(light, nor);

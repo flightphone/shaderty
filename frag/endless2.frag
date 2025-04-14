@@ -34,7 +34,7 @@ float sdSegment(in vec2 p, in vec2 a, in vec2 b) {
 
 
 vec3 curColorN(float d1, vec3 col, vec3 col1, float dd) {
-    float s1 = smoothstep(0., -5. / iResolution.y, d1);
+    float s1 = smoothstep(0., -15. / iResolution.y, d1);
     float cs = dd * dd - (dd - abs(d1)) * (dd - abs(d1));
     if(cs < 0.) {
         cs = 1.;
@@ -111,6 +111,8 @@ vec3 endless(vec2 p0) {
     float numx = floor(p.x), numy = floor(p.y), num = floor(p.x) + floor(p.y);
     p = fract(p);
     float dd = 0.2, d2 = 10., d1 = 10.;
+    col = draw_disc(p0, 0.99, col, col0);  
+    col = draw_cyrcle(p0, 0.98, 0.02, col, col1);
     if(abs(p0.x) < (1. + dd) / n && abs(p0.y) < (1. + dd) / n) {
         d1 = min(p.x, 1. - p.x);
         d2 = min(p.y, 1. - p.y);
@@ -136,9 +138,21 @@ vec3 endless(vec2 p0) {
                 num += 1.;
             }
             if(mod(num, 2.0) == 0.)
-                d = d1;
+            {
+                //d = d1;
+                col = curColorN(d1 - dd, col, col1, dd);
+                col = curColorN(d2 - dd, col, col1, dd);
+            }
             else
-                d = d2;
+            {
+                //d = d2;
+                col = curColorN(d2 - dd, col, col1, dd);
+                col = curColorN(d1 - dd, col, col1, dd);
+            }
+        }
+        else
+        {
+            col = curColorN(d - dd, col, col1, dd);
         }
     } else {
         if (p0.y > 0.)
@@ -159,11 +173,10 @@ vec3 endless(vec2 p0) {
         {
             d = min(bridge2(-p0, n, dd), d);
         }
+        col = curColorN(d - dd, col, col1, dd);
         
     }
-    col = draw_disc(p0, 0.99, col, col0);  
-    col = draw_cyrcle(p0, 0.98, 0.02, col, col1);
-    col = curColorN(d - dd, col, col1, dd);
+    
     return col;
 }
 
