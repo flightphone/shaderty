@@ -140,7 +140,7 @@ vec3 GetRayDir(vec2 uv, vec3 p, vec3 l, float z) {
 #define AA 2
 #endif
 */
-#define AA 1
+#define AA 3
 vec3 col0 = vec3(0.73, 0.59, 0.3);
 vec3 col1 = vec3(0.75, 0.75, 0.75);
 vec3 col2 = vec3(0.7, 0.7, 1.);

@@ -1,3 +1,5 @@
+// u_tex0: ../img/sky.jpg
+
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -5,13 +7,13 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 uniform float u_time;
-uniform sampler2D u_tex0;
+uniform sampler2D u_tex0; 
 uniform sampler2D u_tex1;
 
 #define iResolution u_resolution
 #define iTime u_time
 #define iMouse u_mouse
-#define iChannel0 u_tex0
+//#define iChannel0 u_tex0
 #define iChannel1 u_tex1
 
 #define texture texture2D
@@ -90,7 +92,7 @@ vec3 calcSkyReflect(vec3 rd, vec3 nor, mat3 sky)
     n = nor*sign(d);
     vec3 r = reflect(rd, n);
     vec2 fon = lonlat(sky*r); //get longitude and latitude
-    vec3 col = texture(iChannel0, fon).rgb;
+    vec3 col = texture(u_tex0, fon).rgb;
     return col;
 
 }
@@ -302,7 +304,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             vec3 nor = rota_1*giper.nor;
             float x = aafi(vec2(giper.pos.x, giper.pos.y)) /TAU;
             float y = aafi(vec2(torus.x - length(giper.pos.xy), giper.pos.z)) /TAU;
-            col = texture(iChannel0, vec2(x,y)).rgb;
+            col = texture(u_tex0, vec2(x,y)).rgb;
             col = culccolor(col, backcol, -rd, light, nor);
             // gamma
             //col = pow( col, vec3(0.4545) ); 
