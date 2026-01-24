@@ -6,6 +6,11 @@ precision mediump float;
 
 /////=====================================================================================
 /*
+generating lines on a hyperboloid
+
+hyperboloid, linealsurface, geometry
+
+fork [url]https://www.shadertoy.com/view/wcyBRG[/url]
 */
 
 #define PI  3.14159265359
