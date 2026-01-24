@@ -37,8 +37,9 @@ float EE(vec2 p)
     vec2 b = vec2(0.0, -0.5);
     vec2 l1 = normalize(p-a);
     vec2 l2 = normalize(p-b);
-    float cos1 = dot(vec2(0., 1.), l1);
-    float cos2 = dot(vec2(0., 1.), l2);
+    vec2 z = normalize(a-b);
+    float cos1 = dot(z, l1);
+    float cos2 = dot(z, l2);
     float res = (cos1 - cos2);    
     return res;
 }
