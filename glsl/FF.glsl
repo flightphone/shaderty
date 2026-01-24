@@ -58,19 +58,15 @@ vec3 lines(vec2 p)
     vec3 col0 = vec3(1., 1., 1.),colline = vec3(1., 0., 0.),colline2 = vec3(0., 0., 1.);
     float df = dFF(p);
     float de = dEE(p);
-    
-    float res = FF(p);
-    
-    
 
-	float y = fract(res*8.); 
+	float y = fract(FF(p)*8.); 
     float h = 0.03*df, eps = 15./iResolution.y*df; 
     float s1 = smoothstep(1. - h - eps, 1.-h, y),	
 	s2 = smoothstep(h, h-eps, y);
 	vec3 col1 = mix(col0, colline, s1);
 	col1 = mix(col1, colline, s2);
 
-    y = fract(((EE(p)))*10.); 
+    y = fract(EE(p)*10. - iTime ); 
     h = 0.04*de; 
     eps = 15./iResolution.y*de; 
     s1 = smoothstep(1. - h - eps, 1.-h, y);	
@@ -82,12 +78,11 @@ vec3 lines(vec2 p)
 
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    //vec2 p = vec2(fragCoord.x/iResolution.x, fragCoord.y/iResolution.y); //(-iResolution.xy + 2.0 * fragCoord) / iResolution.y;
 	vec2 p = (-iResolution.xy + 2.0 * fragCoord) / iResolution.y;
-    //if  (iMouse.z > 0.0)
+    if  (iMouse.z > 0.0)
     {
-        //vec2 mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
-        //p -= mo;
+        vec2 mo = (-iResolution.xy + 2.0 * (iMouse.xy)) / iResolution.y;
+        p -= mo;
     }
 	vec3 col =  lines(p);
 	fragColor = vec4(col, 1.0);
