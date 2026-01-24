@@ -14,17 +14,17 @@ float FF(vec2 p)
         res = 1.0/l1 - 1.0/l2;
     }
     res =  abs(res);
-    
     if (res > 1.)
         res = log(res)/3.;
-    
     return res;    
 }
 
 float dFF (vec2 p)
 {
     float eps = 0.001;
-    float res = abs((FF(p) - FF(vec2(p.x, p.y + eps)))/eps) + abs((FF(p) - FF(vec2(p.x+eps, p.y)))/eps);
+    float y = (FF(p) - FF(vec2(p.x, p.y + eps)))/eps;
+    float x = (FF(p) - FF(vec2(p.x+eps, p.y)))/eps;
+    float res = sqrt(x*x + y*y);
     return res;
 }
 
@@ -32,42 +32,52 @@ float dFF (vec2 p)
 
 float EE(vec2 p)
 {
+    float eps = 0.001;
 	vec2 a = vec2(0.0, 0.5);  
     vec2 b = vec2(0.0, -0.5);
     vec2 l1 = normalize(p-a);
     vec2 l2 = normalize(p-b);
     float cos1 = dot(vec2(0., 1.), l1);
     float cos2 = dot(vec2(0., 1.), l2);
-    return cos1 - cos2;    
+    float res = (cos1 - cos2);    
+    return res;
 }
 
 float dEE (vec2 p)
 {
     float eps = 0.001;
-    float res = abs((EE(p) - EE(vec2(p.x, p.y + eps)))/eps) + abs((EE(p) - EE(vec2(p.x+eps, p.y)))/eps);
+    float y = (EE(p) - EE(vec2(p.x, p.y + eps)))/eps;
+    float x = (EE(p) - EE(vec2(p.x+eps, p.y)))/eps;
+    float res = sqrt(x*x + y*y);
     return res;
 }
 
 vec3 lines(vec2 p)
 {
 	
-    vec3 col = vec3(1., 1., 1.),colline = vec3(1., 0., 0.),colline2 = vec3(0., 0., 1.);
+    vec3 col0 = vec3(1., 1., 1.),colline = vec3(1., 0., 0.),colline2 = vec3(0., 0., 1.);
     float df = dFF(p);
     float de = dEE(p);
+    
+    float res = FF(p);
+    
+    
 
-	float y = fract(((FF(p)))*5.), h = 0.015*df, eps = 15./iResolution.y, s1 = smoothstep(1. - h - eps, 1.-h, y),	
+	float y = fract(res*8.); 
+    float h = 0.03*df, eps = 15./iResolution.y*df; 
+    float s1 = smoothstep(1. - h - eps, 1.-h, y),	
 	s2 = smoothstep(h, h-eps, y);
-	col = mix(col, colline, s1);
-	col = mix(col, colline, s2);
+	vec3 col1 = mix(col0, colline, s1);
+	col1 = mix(col1, colline, s2);
 
-    y = fract(((EE(p)))*7.); 
-    h = 0.02*de; 
-    eps = 5./iResolution.y; 
+    y = fract(((EE(p)))*10.); 
+    h = 0.04*de; 
+    eps = 15./iResolution.y*de; 
     s1 = smoothstep(1. - h - eps, 1.-h, y);	
 	s2 = smoothstep(h, h - eps, y);
-	col = mix(col, colline2, s1);
-	col = mix(col, colline2, s2);
-	return col;	
+	vec3 col2 = mix(col0, colline2, s1);
+	col2 = mix(col2, colline2, s2);
+	return mix(col1, col2, 0.5);	
 }
 
 
