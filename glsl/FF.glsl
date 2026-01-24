@@ -14,11 +14,21 @@ float FF(vec2 p)
         res = 1.0/l1 - 1.0/l2;
     }
     res =  abs(res);
-    if (res > .7)
+    
+    if (res > 1.)
         res = log(res)/3.;
     
     return res;    
 }
+
+float dFF (vec2 p)
+{
+    float eps = 0.001;
+    float res = abs((FF(p) - FF(vec2(p.x, p.y + eps)))/eps) + abs((FF(p) - FF(vec2(p.x+eps, p.y)))/eps);
+    return res;
+}
+
+
 
 float EE(vec2 p)
 {
@@ -31,22 +41,30 @@ float EE(vec2 p)
     return cos1 - cos2;    
 }
 
+float dEE (vec2 p)
+{
+    float eps = 0.001;
+    float res = abs((EE(p) - EE(vec2(p.x, p.y + eps)))/eps) + abs((EE(p) - EE(vec2(p.x+eps, p.y)))/eps);
+    return res;
+}
 
 vec3 lines(vec2 p)
 {
 	
     vec3 col = vec3(1., 1., 1.),colline = vec3(1., 0., 0.),colline2 = vec3(0., 0., 1.);
+    float df = dFF(p);
+    float de = dEE(p);
 
-	float y = fract(((FF(p)))*5.), h = 0.07, eps = 15./iResolution.y, s1 = smoothstep(1. - h - eps, 1.-h, y),	
+	float y = fract(((FF(p)))*5.), h = 0.015*df, eps = 15./iResolution.y, s1 = smoothstep(1. - h - eps, 1.-h, y),	
 	s2 = smoothstep(h, h-eps, y);
 	col = mix(col, colline, s1);
 	col = mix(col, colline, s2);
 
-    y = fract(((EE(p)))*5.); 
-    h = 0.05; 
-    eps = 15./iResolution.y; 
+    y = fract(((EE(p)))*7.); 
+    h = 0.02*de; 
+    eps = 5./iResolution.y; 
     s1 = smoothstep(1. - h - eps, 1.-h, y);	
-	s2 = smoothstep(h, h-eps, y);
+	s2 = smoothstep(h, h - eps, y);
 	col = mix(col, colline2, s1);
 	col = mix(col, colline2, s2);
 	return col;	
