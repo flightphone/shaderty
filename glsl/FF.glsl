@@ -2,7 +2,7 @@
 #define TAU 6.28318530718
 
 //@FabriceNeyret2  comment
-#define S(y) smoothstep(fwidth(y), 0., abs(fract(y)-0.5) )
+#define S(y) smoothstep(1.5 * fwidth(y), 0., abs(fract(y)-0.5) )
 
 
 float FF(vec2 p)
