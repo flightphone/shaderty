@@ -26,7 +26,7 @@ vec3 lines(vec2 p)
     vec3 col0 = vec3(1., 0.5, 0.5), col1 = vec3(0.5, 1., 0.5), col2 = vec3(0.5, 0.5, 1.),
 	col3 = vec3(1., 1., 0.5), col4 = vec3(1., 0.5, 1.), col5 = vec3(0.5, 1., 1.),
 	colline = vec3(0.);
-	mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+	mat2 rot = mat2(cos(0.8), sin(0.8), -sin(0.8), cos(0.80));
     p.x += iTime*0.2;
     
 	vec2 x = p, shift = vec2(0.1, 0.2);
@@ -53,7 +53,10 @@ vec3 lines(vec2 p)
 	if (ncol == 5.)		
 		col = col5;			
 	
-	float y = fract(p.y), h = 0.06, eps = 15./iResolution.y, s1 = smoothstep(1. - h - eps, 1.-h, y),	
+	float y = fract(p.y), 
+	h = fwidth(p.y), 
+	eps = h, //2.*fwidth(p.y), 
+	s1 = smoothstep(1. - h - eps, 1.-h, y),	
 	s2 = smoothstep(h, h-eps, y);
 	col = mix(col, colline, s1);
 	col = mix(col, colline, s2);
